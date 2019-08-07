@@ -41,27 +41,74 @@
 		<script type="text/javascript" src="js/app.js"></script>
 		<script type="text/javascript" src="js/observing.js"></script>
 		<script type="text/javascript">
-			app.initialize();
-			//observing.initialize();
+
+		document.addEventListener('deviceready', function() {
+            //start-up code in here...
+            $.support.cors = true;
+			$.mobile.allowCrossDomainPages = true;			
+		}, false);
+		
+		$(function() {
+			//need to explicitly activate these since they are outside of a page
+			$("body>[data-role='panel']" ).panel();
+			$("#navigationOptions").listview();
+		})
+
+		//app.initialize();
+		//observing.initialize();
 		</script>
 
 
     <title>LEO Field Reporter</title>
 </head>
 
+
+
 <body class="clr-accent-blue">
 
+	<script id="category-block-template" type="template/mustache">
+		<div class="category-block">
+			<label>
+				<input class="checkbox-inline" type="checkbox" name="CategoryID" value="{{CategoryID}}" />
+				{{{IconSvg}}}
+				<div>{{CategoryName}}</div>
+	
+			</label>
+		</div>
+	</script>
 
-	<div data-role="page" id="foo">
+	<div data-role="page" id="home">
 
 		<nd2-include data-src="header.html"></nd2-include>
 	
 		<div role="main" class="ui-content">
-
+			<p>home page</p>
 		</div>
 	
 		<nd2-include data-src="footer.html"></nd2-include>
 	</div><!-- /page -->
+
+	<div data-role="page" id="newobservation">
+
+		<nd2-include data-src="header.html"></nd2-include>
+	
+		<div role="main" class="ui-content">
+			<p>new observation in here</p>
+		</div>
+	
+		<nd2-include data-src="footer.html"></nd2-include>
+	</div><!-- /page -->
+
+	<div data-role="page" id="drafts">
+
+			<nd2-include data-src="header.html"></nd2-include>
+		
+			<div role="main" class="ui-content">
+				<p>stuff you haven't sent yet</p>>
+			</div>
+		
+			<nd2-include data-src="footer.html"></nd2-include>
+		</div><!-- /page -->
 
 	<div data-role="page" id="signInPage">
 
@@ -80,18 +127,45 @@
 		</div><!-- /page -->
 	
 	<!-- Start of second page -->
-	<div data-role="page" id="bar">
+	<div data-role="page" id="settings">
 	
 		<nd2-include data-src="header.html"></nd2-include>
 	
 		<div role="main" class="ui-content">
-			<p>I'm the second in the source order so I'm hidden when the page loads. I'm just shown if a link that references my id is beeing clicked.</p>
-			<p><a href="#foo">Back to foo</a></p>
+			<p>settings in here</p>>
 		</div><!-- /content -->
 	
 		<nd2-include data-src="footer.html"></nd2-include>
 	</div>
+
+	<div data-role="page" id="about">
+	
+			<nd2-include data-src="header.html"></nd2-include>
+		
+			<div role="main" class="ui-content">
+				<p>The Local Environmental Observer Network...</p>
+
+				<p><a href="#" onclick="window.open('https://www.leonetwork.org', '_system'); return false;">Visit us at leonetwork.org</a></p>
+			</div><!-- /content -->
+		
+			<nd2-include data-src="footer.html"></nd2-include>
+		</div>
   
+	<!--menu-->
+	<div data-role="panel" id="leftpanel" data-display="overlay" data-position-fixed="true" data-theme="a" >
+			<div style="text-align:center;"><img src="img/logo.png" />
+				<h3>Local Environmental Observer Network</h3>
+			</div>
+			
+			<hr/>
+
+			<ul id="navigationOptions" data-role="listview" data-icon="false">
+				<li><a href="#newobservation">Make an Observation</a></li>
+				<li><a href="#drafts">Drafts</a></li>
+				<li><a href="#settings">Settings</a></li>
+				<li><a href="#about">About</a></li>
+			</ul>
+	</div>
 </body>
 
 </html>

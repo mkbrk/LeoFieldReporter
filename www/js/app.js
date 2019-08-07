@@ -1,11 +1,7 @@
 
 var app = {
     initialize: function() {
-        document.addEventListener('deviceready', function() {
-            //start-up code in here...
-            $.support.cors = true;
-            //app.showPage("about-page");
-        }, false);
+        
     },
     showingPage : function(id) {
         //use this to run some code upon showing a page
