@@ -8,11 +8,11 @@
         <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width" />
         <meta http-equiv="Content-Security-Policy" content="default-src * gap: data: 'unsafe-eval' 'unsafe-inline' blob: ws: https://ssl.gstatic.com;img-src * data: gap: blob: 'self' content:;frame-src * gap: blob:;connect-src * gap: data: 'unsafe-eval' 'unsafe-inline' blob:;style-src * 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;media-src *;script-src * data: 'self' 'unsafe-inline' 'unsafe-eval' gap: blob:;" />
 
-		<xlink rel="stylesheet" href="css/font.awesome.css" />
+		<link rel="stylesheet" href="css/font.awesome.css" />
 		<link rel="stylesheet" href="css/jquery.mobile.css" />
-		<xlink rel="stylesheet" href="css/waves.min.css" />
-		<xlink rel="stylesheet" href="css/animate.css" />
-		<xlink rel="stylesheet" href="css/nativedroid2.css" />
+		<link rel="stylesheet" href="css/waves.min.css" />
+		<link rel="stylesheet" href="css/animate.css" />
+		<link rel="stylesheet" href="css/nativedroid2.css" />
 
         <!--
         this FINALLY works:
@@ -30,14 +30,14 @@
 
 		<script type="text/javascript" src="cordova.js"></script>
 		<script type="text/javascript" src="js/jquery.js"></script>
-		
+
 		<script type="text/javascript" xsrc="js/jquery-ui.js"></script>
 		<script type="text/javascript" src="js/mustache.js"></script>
 		<script type="text/javascript" src="js/moment.js"></script>
 		<script src="js/jquery.mobile.js"></script>
-		<script xsrc="js/waves.min.js"></script>
-		<script xsrc="js/wow.min.js"></script>
-		<script xsrc="js/nativedroid2.js"></script>
+		<script src="js/waves.min.js"></script>
+		<script src="js/wow.min.js"></script>
+		<script src="js/nativedroid2.js"></script>
 		<script type="text/javascript" src="js/app.js"></script>
 		<script type="text/javascript" src="js/observing.js"></script>
 		<script type="text/javascript">
@@ -51,37 +51,30 @@
 
 <body>
 
+
 	<div data-role="page" id="foo">
 
-		<div data-role="header">
-			<h1>Foo</h1>
-		</div><!-- /header -->
+		<nd2-include data-src="header.html"></nd2-include>
 	
 		<div role="main" class="ui-content">
 			<p>I'm first in the source order so I'm shown as the page.</p>
 			<p>View internal page called <a href="#bar">bar</a></p>
 		</div><!-- /content -->
 	
-		<div data-role="footer">
-			<h4>Page Footer</h4>
-		</div><!-- /footer -->
+		<nd2-include data-src="footer.html"></nd2-include>
 	</div><!-- /page -->
 	
 	<!-- Start of second page -->
 	<div data-role="page" id="bar">
 	
-		<div data-role="header">
-			<h1>Bar</h1>
-		</div><!-- /header -->
+		<nd2-include data-src="header.html"></nd2-include>
 	
 		<div role="main" class="ui-content">
 			<p>I'm the second in the source order so I'm hidden when the page loads. I'm just shown if a link that references my id is beeing clicked.</p>
 			<p><a href="#foo">Back to foo</a></p>
 		</div><!-- /content -->
 	
-		<div data-role="footer">
-			<h4>Page Footer</h4>
-		</div><!-- /footer -->
+		<nd2-include data-src="footer.html"></nd2-include>
 	</div>
   
 </body>
