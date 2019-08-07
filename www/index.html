@@ -49,7 +49,7 @@
     <title>LEO Field Reporter</title>
 </head>
 
-<body>
+<body class="clr-accent-blue">
 
 
 	<div data-role="page" id="foo">
@@ -57,12 +57,27 @@
 		<nd2-include data-src="header.html"></nd2-include>
 	
 		<div role="main" class="ui-content">
-			<p>I'm first in the source order so I'm shown as the page.</p>
-			<p>View internal page called <a href="#bar">bar</a></p>
-		</div><!-- /content -->
+
+		</div>
 	
 		<nd2-include data-src="footer.html"></nd2-include>
 	</div><!-- /page -->
+
+	<div data-role="page" id="signInPage">
+
+			<nd2-include data-src="header.html"></nd2-include>
+		
+			<div role="main" class="ui-content">
+				<label for="emailAddress">Email Address</label>
+				<input type="email" name="emailAddress" id="emailAddress" value="" data-clear-btn="true">
+				<label for="password">Password</label>
+				<input type="password" name="password" id="password" value="" >
+
+				<button class="ui-btn">Sign In</button>
+			</div><!-- /content -->
+		
+			<nd2-include data-src="footer.html"></nd2-include>
+		</div><!-- /page -->
 	
 	<!-- Start of second page -->
 	<div data-role="page" id="bar">
