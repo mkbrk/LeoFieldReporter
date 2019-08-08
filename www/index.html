@@ -49,16 +49,64 @@
 		}, false);
 		
 		$(function() {
+
+			app.settings.load();
+			app.settings.scatter();
+
+			app.drafts.scatter();
+
 			//need to explicitly activate these since they are outside of a page
 			$("body>[data-role='panel']" ).panel();
 			$("#navigationOptions").listview();
+
+			//load up the categories
+			$.get("data/categories.json", null, function(res) {
+				observing.categories = res;
+				var template = $("#category-block-template").html();
+				Mustache.parse(template);
+
+				var groups = {
+					NATURAL:[],
+					HUMAN:[],
+					EVENT:[]
+				}
+				for (var i = 0; i < res.length; i++) {
+					if(res[i].GroupID && res[i].GroupID != null)
+					{
+						var h = Mustache.render(template, res[i]);
+						groups[res[i].GroupID].push(h);
+					}
+				};
+
+				$("#categories_NATURAL").html(groups.NATURAL.join(""));
+				$("#categories_EVENT").html(groups.EVENT.join(""));
+				$("#categories_HUMAN").html(groups.HUMAN.join(""));
+			}, "json");
 		})
 
 		//app.initialize();
 		//observing.initialize();
 		</script>
 
+		<style>
+			.category-block svg {
+				max-width: 50px;
+			}
 
+			.category-block {
+				display: inline-block;
+				width:100px;
+				height:100px;
+			}
+
+			.nonefound {
+				color:silver;
+				font-style: italic;
+				margin-top:20px;
+				margin-bottom: 20px;
+				text-align: center;
+			}
+		</style>
     <title>LEO Field Reporter</title>
 </head>
 
@@ -88,12 +136,100 @@
 		<nd2-include data-src="footer.html"></nd2-include>
 	</div><!-- /page -->
 
+	<script>
+		function observationPage(id) {
+			$(".observation-page").hide();
+			$("#" + id).fadeIn();
+		}
+	</script>
+
 	<div data-role="page" id="newobservation">
 
 		<nd2-include data-src="header.html"></nd2-include>
 	
 		<div role="main" class="ui-content">
-			<p>new observation in here</p>
+			<div id="headline-page" class="observation-page">
+				<h3>What's your headline?</h3>
+				<h5>This will be the title of your post</h5>
+				<input type="text" name="ObservationTitle" id="ObservationTitle" value="" />
+
+				<div>
+					<button type="button" onclick="observationPage('date-page');" class="ui-btn ui-btn-raised ui-btn-icon-right" >
+						Next
+						<i class="zmdi zmdi-chevron-right"></i>
+					</button>
+				</div>
+			</div>
+
+			<div id="date-page" class="observation-page" style="display: none;">
+				<h3>When did you make your observation?</h3>
+				<input type="date" name="ObservationDate" id="ObservationDate" value="" />
+
+				<div>
+					<button type="button" onclick="observationPage('text-page');" class="ui-btn ui-btn-raised ui-btn-icon-right" >
+						Next
+						<i class="zmdi zmdi-chevron-right"></i>
+					</button>
+
+					<button type="button" onclick="observationPage('headline-page');" class="ui-btn  ui-btn-icon-left" >
+							<i class="zmdi zmdi-chevron-left"></i>
+						Previous</button>
+				</div>
+			</div>
+
+			<div id="text-page" class="observation-page" style="display: none;">
+				<h3>Please describe your observation</h3>
+				<h5>Why is it unusual or significant?</h5>
+				<textarea rows="10" name="ObservationText" id="ObservationText"></textarea>
+
+				<div style="text-align: center;">
+					<button type="button" onclick="observationPage('date-page');" class="ui-btn ui-btn-inline ui-icon-arrow-l ui-btn-icon-left" >Previous</button>
+					<button type="button" onclick="observationPage('photos-page');" class="ui-btn ui-btn-inline ui-icon-arrow-r ui-btn-icon-right" >Next</button>
+				</div>
+			</div>
+
+			<div id="photos-page" class="observation-page" style="display: none;">
+				<h3>Add photos or videos to support your observation</label>
+				
+				<button type="button" onclick="" class="ui-btn ui-icon-camera ui-btn-icon-left" >Take Photo or Video</button>
+				<button type="button" onclick="" class="ui-btn ui-icon-plus ui-btn-icon-left" >Choose Photo or Video</button>
+
+				<div style="text-align: center;">
+					<button type="button" onclick="observationPage('text-page');" class="ui-btn ui-btn-inline ui-icon-arrow-l ui-btn-icon-left" >Previous</button>
+					<button type="button" onclick="observationPage('categories-page');" class="ui-btn ui-btn-inline ui-icon-arrow-r ui-btn-icon-right" >Next</button>
+				</div>
+			</div>
+
+			<div id="categories-page" class="observation-page" style="display: none;">
+				<h5>Please help us categorize your observation</h5>
+				
+				<h3>Natural Environment</h3>
+				<p>What aspects of the natural environment are relevant to this post? Choose all that apply.</p>
+
+
+				<div id="categories_NATURAL"></div>
+				
+
+				<h3>Unusual or Unexpected Event</h3>
+				<p>Why is this post unusual or unexpected? What about this event deviates from the norm?</p>
+
+				<div id="categories_EVENT"></div>
+
+				<h3>Impact on Human Environment</h3>
+				<p>How has the human environment been impacted by the event described in this post?</p>
+
+				<div id="categories_HUMAN"></div>
+
+				<div style="text-align: center;">
+					<button type="button" onclick="observationPage('photos-page');" class="ui-btn ui-btn-inline ui-icon-arrow-l ui-btn-icon-left" >Previous</button>
+					<button type="button" onclick="observationPage('finished-page');" class="ui-btn ui-btn-inline ui-icon-arrow-r ui-btn-icon-right" >Next</button>
+				</div>
+			</div>
+
+			<div id="finished-page" class="observation-page" style="display: none;">
+				<h3>And... you're done.</h3>
+			</div>
+
 		</div>
 	
 		<nd2-include data-src="footer.html"></nd2-include>
@@ -104,7 +240,7 @@
 			<nd2-include data-src="header.html"></nd2-include>
 		
 			<div role="main" class="ui-content">
-				<p>stuff you haven't sent yet</p>>
+				
 			</div>
 		
 			<nd2-include data-src="footer.html"></nd2-include>
@@ -131,9 +267,24 @@
 	
 		<nd2-include data-src="header.html"></nd2-include>
 	
-		<div role="main" class="ui-content">
-			<p>settings in here</p>>
-		</div><!-- /content -->
+		<div role="main" class="ui-content">		
+			<label>Language</label>
+			<select name="Language">
+				<option value="en">English</option>
+				<option value="es">Español</option>
+				<option value="fr">Français</option>
+			</select>
+			
+			<br>
+
+			<label>Root URL</label>
+			<input type="url" name="RootUrl" value="">
+
+			<div>
+				<button onclick="app.settings.gather();app.notify('Saved settings.');" class="ui-btn">Save Settings</button>
+			</div>
+
+		</div>
 	
 		<nd2-include data-src="footer.html"></nd2-include>
 	</div>
@@ -143,10 +294,16 @@
 			<nd2-include data-src="header.html"></nd2-include>
 		
 			<div role="main" class="ui-content">
-				<p>The Local Environmental Observer Network...</p>
+				<h3>About the Local Environmental Observer Network</h3>
+				<p>LEO is a network of local observers and topic experts who share knowledge about unusual animal, environment, and weather events. With LEO, you can connect with others in your community, share observations, raise awareness, and find answers about significant environmental events. You can also engage with topic experts in many different organizations and become part of a broader observer community.</p>
 
 				<p><a href="#" onclick="window.open('https://www.leonetwork.org', '_system'); return false;">Visit us at leonetwork.org</a></p>
-			</div><!-- /content -->
+
+				<h3>About the LEO Field Reporter App</h3>
+
+				<p>The LEO Field Reporter app is the easiest way to contribute to the LEO Network. It is designed to work without a network connection, so it's usable wherever you are witnessing unusual environmental events.</p>
+
+			</div>
 		
 			<nd2-include data-src="footer.html"></nd2-include>
 		</div>
@@ -165,6 +322,9 @@
 				<li><a href="#settings">Settings</a></li>
 				<li><a href="#about">About</a></li>
 			</ul>
+
+			<hr/>
+
 	</div>
 </body>
 

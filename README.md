@@ -1,69 +1,42 @@
-# Hello World PhoneGap Template [![bitHound Score][bithound-img]][bithound-url]
+# LEO Field Reporter
 
-A PhoneGap Hello World template
+Getting a Phonegap project to work is difficult. Here are some of the tricks I used to get this one working.
 
-## Usage
+- Make sure Node and NPM are up to date. 
+- Make sure Phonegap and Cordova are up to date via NPM.
+- Browser vs. emulator vs. deployed app behave differently in some ways. One important one is in HTTP calls, where cross-domain issues crop up (emulator proxies HTTP calls to the *phonegap serve* instance, so cross-domain issues may be masked). If you have a remote endpoint, **make sure the CORS headers are set properly**, or else you might get invisible errors when the app is deployed (this only happened with POSTs for me). (Using requestbin probably would have been a smart thing to try.) 
+- Refreshing the app (on Android at least) sometimes results in "App not installed" errors. Removing the app and waiting seems to get around this.
+- Make sure config.xml has <preference name="phonegap-version" value="cli-9.0.0" /> 
+- Make sure the app ID in config.xml is something new/unique - i.e. not helloworld
+- Content-Security-Policy feels like voodoo. The one in index.html seems to work.
+- If using jQuery/JQM, don't forget $.support.cors = true and $.mobile.allowCrossDomainPages = true
+- Creating a new version of index.html seems problematic with *phonegap serve*, probably due to some artifact pointing to the old version. The only way I could get around this was to do a fresh app with *phonegap create* and then move files into it.
+- 
 
-#### PhoneGap CLI
+### Basic setup steps
 
-The hello-world template is the default when you create a new application using the [phonegap-cli][phonegap-cli-url].
+- Create fresh Phonegap app with *phonegap create*
+- Add .gitignore to it
+- Change phonegap-version preference in config.xml
+- Add plugins to config.xml
+- Update Content-Security-Policy in index.html
+- Create repo on Github
+- Create local repo using the app directory
+- Add a remote to the local repo pointing to the Github repo
+- Commit and push to remote
+- Setup a new app at build.phonegap.com, pulling from Github repo
+- Pull code and build
+- Deploy to devices
 
-    phonegap create my-app
+### Secrets
 
-Create an app using this template specifically:
+- Phonegap Build can pull/build from public Github repos, so make sure there aren't any secrets in the code!
 
-    phonegap create my-app --template hello-world
-
-To see a list of other available PhoneGap templates:
-
-    phonegap template list
-
-## [config.xml][config-xml]
-
-#### android-minSdkVersion (Android only)
-
-Minimum SDK version supported on the target device. Maximum version is blank by default.
-
-This template sets the minimum to `14`.
-
-    <preference name="android-minSdkVersion" value="14" />
-
-#### &lt;access ...&gt; (All)
-
-This template defaults to wide open access.
-
-    <access origin="*" />
-
-It is strongly encouraged that you restrict access to external resources in your application before releasing to production.
-
-For more information on whitelist configuration, see the [Cordova Whitelist Guide][cordova-whitelist-guide] and the [Cordova Whitelist Plugin documentation][cordova-plugin-whitelist]
-
-## [www/index.html][index-html]
-
-#### Content Security Policy (CSP)
-
-The default CSP is similarly open:
-
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline'; style-src 'self' 'unsafe-inline'; media-src *" />
-
-Much like the access tag above, you are strongly encouraged to use a more restrictive CSP in production.
-
-A good starting point declaration might be:
-
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: 'unsafe-inline' https://ssl.gstatic.com; style-src 'self' 'unsafe-inline'; media-src *" />
-
-For more information on the Content Security Policy, see the [section on CSP in the Cordova Whitelist Plugin documentation][cordova-plugin-whitelist-csp].
-
-Another good resource for generating a good CSP declaration is [CSP is Awesome][csp-is-awesome]
+### jQuery Mobile Tips
 
 
-[phonegap-cli-url]: http://github.com/phonegap/phonegap-cli
-[cordova-app]: http://github.com/apache/cordova-app-hello-world
-[bithound-img]: https://www.bithound.io/github/phonegap/phonegap-app-hello-world/badges/score.svg
-[bithound-url]: https://www.bithound.io/github/phonegap/phonegap-app-hello-world
-[config-xml]: https://github.com/phonegap/phonegap-template-hello-world/blob/master/config.xml
-[index-html]: https://github.com/phonegap/phonegap-template-hello-world/blob/master/www/index.html
-[cordova-whitelist-guide]: https://cordova.apache.org/docs/en/dev/guide/appdev/whitelist/index.html
-[cordova-plugin-whitelist]: http://cordova.apache.org/docs/en/latest/reference/cordova-plugin-whitelist
-[cordova-plugin-whitelist-csp]: http://cordova.apache.org/docs/en/latest/reference/cordova-plugin-whitelist#content-security-policy
-[csp-is-awesome]: http://cspisawesome.com
+### Still TBD
+
+- Best way to handle icons
+- Signing key management
+- Deployment to app stores

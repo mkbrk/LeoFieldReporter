@@ -1,8 +1,67 @@
 
 var app = {
+    notify : function(message) {
+        new $.nd2Toast({ 
+            message : message
+        });
+    },
+    //this should be useful on other apps
+    settings : {
+        _values : {
+            RootUrl : "https://leonetwork-staging.azurewebsites.net",
+            Language:"en"
+        },
+        get : function(key, defaultValue) {
+            if(this._values.hasOwnProperty(key))
+                return this._values[key];
+            else
+                return defaultValue || null;
+        },
+        set : function(key, value) {
+            this._values[key] = value;
+        },
+        load : function() {
+            var storage = window.localStorage;
+            var s = storage.getItem("SETTINGS");
+            if(s != null && s.length > 0)
+            {
+                this._values = JSON.parse(s);
+            }  
+        },
+        save : function() {
+            var storage = window.localStorage;
+            var s = JSON.stringify(this._values);
+            storage.setItem("SETTINGS", s);
+        },
+        scatter : function() {
+            var wrapper = $("#settings");
+            for (var key in this._values) {
+                if (this._values.hasOwnProperty(key)) {
+                    wrapper.find("[name=" + key + "]").val(this._values[key]);                    
+                }
+            }
+        },
+        gather : function() {
+            var self = this;
+            $("#settings").find("input,select,textarea").each(function() {
+                var n = $(this).attr("name");
+                var v = $(this).val();
+                self._values[n] = v;
+            });
+            this.save();
+        },
+    },
+
+    drafts : {
+        scatter : function() {
+            $("#drafts .ui-content").html("<h3 class='nonefound'>No drafts</h3><div><a href='#newobservation' class='ui-btn ui-btn-raised ui-btn-icon-left'><i class='zmdi zmdi-plus'></i> Make an Observation</a></div>");
+        }
+    },
+    
     initialize: function() {
         
     },
+
     showingPage : function(id) {
         //use this to run some code upon showing a page
         if(id == "make-observation-page")
