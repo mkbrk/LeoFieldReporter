@@ -68,8 +68,15 @@
 		
 		$(function() {			
 			//need to explicitly activate these since they are outside of a page
-			$("body>[data-role='panel']" ).panel();
-			$("#navigationOptions").listview();
+			$("body>[data-role='panel']" ).panel( {beforeopen: function(ev, ui) {
+					//this is the chance to refresh the counts
+					$(this).find(".ui-li-count").each(function() {
+						$(this).html(app.observation[$(this).attr("for")].count());
+					});
+				}
+			});
+
+			$("body>[data-role='panel'] ul[data-role='listview']").listview();
 
 			//load up the categories
 			$.get("data/categories.json", null, function(res) {
@@ -160,13 +167,36 @@
 	</div>
 </script>
 
+<script id="photo-thumbnail-template" type="template/mustache">
+	<div class="photo-thumbnail" index="{{Index}}">
+		<img style="width:100%;" src="{{Data}}" />
+		<div><input type="text" placeholder="Caption" value="{{Caption}}"/></div>
+		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="app.removePhoto({{Index}});"><i class="zmdi zmdi-delete"></i> Remove</a></div>
+	</div>
+</script>
+
 <script id="drafts-template" type="template/mustache">
 	<ul>
 		{{#drafts}}
 			<li>
-				<a href="javascript:app.showPage('observation');app.observation.editDraft('{{_ID}}');">
+				<a href="javascript:app.showPage('observation');app.observation.drafts.edit('{{_ID}}');">
 					<h2>{{ObservationTitle}}{{^ObservationTitle}}Untitled Observation{{/ObservationTitle}}</h2>
 					<p>Updated {{_UPDATED}}</p>
+					<span class="ui-li-count">{{_STATUS}}</span>
+				</a>
+			</li>
+		{{/drafts}}
+	</ul>
+</script>
+
+<script id="outbox-template" type="template/mustache">
+	<ul>
+		{{#drafts}}
+			<li>
+				<a href="javascript:app.observation.outbox.edit('{{_ID}}');">
+					<h2>{{ObservationTitle}}{{^ObservationTitle}}Untitled Observation{{/ObservationTitle}}</h2>
+					<p>Updated {{_UPDATED}}</p>
+					<span class="ui-li-count">{{_STATUS}}</span>
 				</a>
 			</li>
 		{{/drafts}}
@@ -267,9 +297,14 @@
 			<div id="photos-page" class="observation-page" style="display: none;">
 				<h3>Add photos or videos to support your observation</label>
 				
-				<button type="button" onclick="" class="ui-btn ui-icon-camera ui-btn-icon-left" >Take Photo or Video</button>
-				<button type="button" onclick="" class="ui-btn ui-icon-plus ui-btn-icon-left" >Choose Photo or Video</button>
+					<div>
+						<button type="button" onclick="app.observation.photos.add();" class="ui-btn ui-icon-camera ui-btn-icon-left ui-btn-inline">Take Photo/Video</button>
+						<button type="button" onclick="" class="ui-btn ui-icon-plus ui-btn-icon-left ui-btn-inline">Choose Photo/Video</button>
+					</div>
 
+					<div id="photo-thumbnails">
+
+					</div>
 				<div>
 					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
 						Next
@@ -323,7 +358,7 @@
 							Save as Draft
 						</button>
 						<br>
-						<button type="button" onclick="app.observation.send();" class="ui-btn  clr-btn-green ui-btn-icon-left" >
+						<button type="button" onclick="app.observation.drafts.send();" class="ui-btn  clr-btn-green ui-btn-icon-left" >
 							<i class="zmdi zmdi-mail-send"></i>
 							Send Now
 						</button>
@@ -347,6 +382,9 @@
 					<div class='col-xs-auto'>
 						<a href='javascript:app.observation.deleteDraft();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><i class='zmdi zmdi-delete zmd-2x'></i><strong>Delete Draft</strong></a>
 					</div>
+					<div class='col-xs-auto'>
+							<a href='javascript:app.observation.dumpToConsole();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><strong>Dump to Console</strong></a>
+						</div>
 				</div>
 			</div>
 
@@ -357,13 +395,21 @@
 
 	<div data-role="page" id="drafts">
 
-			<nd2-include data-src="header.html"></nd2-include>
-		
-			<div role="main" class="ui-content">
-				<div id="drafts_list"></div>
-			</div>
-		
-		</div><
+		<nd2-include data-src="header.html"></nd2-include>
+	
+		<div role="main" class="ui-content">
+		</div>
+	
+	</div>
+
+	<div data-role="page" id="outbox">
+
+		<nd2-include data-src="header.html"></nd2-include>
+	
+		<div role="main" class="ui-content">
+		</div>
+	
+	</div>
 
 	<div data-role="page" id="sign-in">
 
@@ -435,9 +481,14 @@
 			
 			<hr/>
 
-			<ul id="navigationOptions" data-role="listview" data-icon="false">
+			<ul data-role="listview" data-icon="false">
 				<li><a href="javascript:app.showPage('observation');app.observation.start();">Make an Observation</a></li>
-				<li><a href="javascript:app.showPage('drafts');">Drafts</a></li>
+				<li><a href="javascript:app.showPage('drafts');">Drafts <span class="ui-li-count" for="drafts"></span></a></li>
+				<li><a href="javascript:app.showPage('outbox');">Outbox <span class="ui-li-count" for="outbox"></span></a></li>
+				<li><a href="javascript:app.showPage('sent');">Sent <span class="ui-li-count" for="sent"></span></a></li>
+			</ul>
+			<hr/>
+			<ul data-role="listview" data-icon="false">
 				<li><a href="javascript:app.showPage('about');">About</a></li>
 				<li><a href="javascript:app.showPage('settings');">Settings</a></li>
 			</ul>

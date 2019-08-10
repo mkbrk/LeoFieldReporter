@@ -56,6 +56,9 @@ var app = {
     observation : {
         current : null,
         initialize : function() {
+
+            this.current = this.defaultObservation();
+
             var self = this;
             $(".observation-page").find("input,textarea").on("change", function(e) {
                 var n = $(this).attr("name");
@@ -71,13 +74,10 @@ var app = {
 
             $(".observation-page").find(".category-block").on("change", function(e) {
                 //spin through and gather them all
-                self.current.Categories = [];
-                $(".observation-page .category-block").each(function() {
-                    if($(this).hasClass("selected"))
-                        self.current.Categories.push($(this).attr("category"));
-                });
+                self.categories.gather();
                 self.save();
             });
+
         },
         setCurrent : function(data) {
             this.current = data;
@@ -85,25 +85,12 @@ var app = {
             //that doesn't happen until some of the data are changed
             //this is to prevent overly chatty "continue editing?" messages
         },
-        hasCurrent : function() {
-            return window.localStorage.getItem("UNSAVEDOBSERVATION") != null;
+        hasUnsavedDraft : function() {
+            return this.getUnsavedDraft() != null;
         },
-        save : function() {
-            if(this.current != null)
-            {
-                if(!this.current._ID || this.current._ID == null)
-                    this.current._ID = "UNSAVEDOBSERVATION";
 
-                this.current._UPDATED = moment().format("YYYY-MM-DD");
-                window.localStorage.setItem(this.current._ID, JSON.stringify(this.current));
-            }
-        },
-        getCurrent : function() {
-            var c = window.localStorage.getItem("UNSAVEDOBSERVATION");
-            if(c != null)
-                return JSON.parse(c);
-            else
-                return null;
+        getUnsavedDraft : function() {
+            return this.get("UNSAVEDOBSERVATION");
         },
         setTitle : function() {
             if(this.current != null)
@@ -126,7 +113,10 @@ var app = {
                 LocationLat: null,
                 LocationLng: null,
                 Categories: [],
-                Attachments: [],
+                Photos: [],
+                Videos: [],
+                AudioRecordings: [],
+                Files: [],
                 //metadata fields
                 _ID : "UNSAVEDOBSERVATION",
                 _CURRENTSTEP:"headline-page",
@@ -145,6 +135,57 @@ var app = {
                 }
             });
         },
+        getKey : function(prefix) {
+            var rand = 1000 * Math.random();
+            return prefix + "_" + rand;
+        },
+        get : function(id) {
+            var c = window.localStorage.getItem(id);
+            if(c != null)
+                return JSON.parse(c);
+            else
+                return null;
+        },
+        list : function(prefix) {
+            var d = [];
+            for (var i = 0; i < window.localStorage.length; i++) {
+                var key = window.localStorage.key(i);
+                if (key.indexOf(prefix) == 0) {
+                    d.push(JSON.parse(window.localStorage.getItem(key)));
+                }
+            }
+            return d;
+        },
+        count : function(prefix) {
+            var c = 0;
+            for (var i = 0; i < window.localStorage.length; i++) {
+                var key = window.localStorage.key(i);
+                if (key.indexOf(prefix) == 0) {
+                    c++;
+                }
+            }
+            return c;
+        },
+        remove : function(id) {
+            window.localStorage.removeItem(id);
+        },
+        save : function(obs) {
+            if(!obs || obs == null)
+            {
+                if(this.current != null)
+                {
+                    this.save(this.current);
+                }
+            }
+            else
+            {
+                if(!obs._ID || obs._ID == null)
+                obs._ID = "UNSAVEDOBSERVATION";
+
+                obs._UPDATED = moment().format("YYYY-MM-DD");
+                window.localStorage.setItem(obs._ID, JSON.stringify(obs));
+            }
+        },
         saveAsDraft : function() {
             //takes the current observation and stashes it in a draft
             this.current._STATUS = "draft";
@@ -152,9 +193,7 @@ var app = {
             if(this.current._ID == null || this.current._ID == "UNSAVEDOBSERVATION")
             {
                 doStartOver = true;
-                var rand = 1000 * Math.random();
-                var key = "DRAFT_" + rand;
-                this.current._ID = key;
+                this.current._ID = this.getKey("DRAFT");
             }
 
             window.localStorage.setItem(this.current._ID, JSON.stringify(this.current));
@@ -175,9 +214,9 @@ var app = {
             this.scatter();
         },
         start : function() {
-            if(this.hasCurrent())
+            if(this.hasUnsavedDraft())
             {
-                this.edit(this.getCurrent());
+                this.edit(this.getUnsavedDraft());
                 this.show("continue-page");
             }
             else
@@ -186,15 +225,88 @@ var app = {
                 this.show("headline-page");
             }
         },
-        drafts : function() {
-            var d = [];
-            for (var i = 0; i < window.localStorage.length; i++) {
-                var key = window.localStorage.key(i);
-                if (key.indexOf("DRAFT_") == 0) {
-                	d.push(JSON.parse(window.localStorage.getItem(key)));
+        dumpToConsole : function() {
+            if(this.current != null)
+            {
+                console.log(JSON.stringify(this.current));
+            }
+        },
+        drafts : {
+            get : function(id) {
+                return app.observation.get(id);
+            },
+            list : function() {
+                return app.observation.list("DRAFT");
+            } ,
+            count : function() {
+                return app.observation.count("DRAFT");
+            },
+            edit : function(id) {
+                var d = this.get(id);
+                if(d != null)
+                {
+                    app.observation.edit(d);
+                }
+                else
+                {
+                    app.notify("Can't find your draft.");
+                }
+            },
+            send : function(id) {
+                //moves the given draft to the outbox
+                var obs = app.observation.current;
+
+                if(id && id != null)
+                    obs = app.observation.get(id);
+
+                var deleteMe = obs._ID;
+
+                if(obs != null)
+                {
+                    obs._ID = app.observation.getKey("PENDING");
+                    obs._STATUS = "waiting to send";
+                    app.observation.save(obs);
+                    app.observation.remove(deleteMe);
+                    app.observation.startOver();
+                    app.notify("Your draft was queued for sending. You can still access it in your Outbox.");
+                    app.showPage("observation");
                 }
             }
-            return d;
+        },
+        outbox : {
+            get : function(id) {
+                return app.observation.get(id);
+            },
+            list : function() {
+                return app.observation.list("PENDING");
+            },
+            count : function() {
+                return app.observation.count("PENDING");
+            }  ,
+            edit : function(id) {
+                //takes this draft out of the outbox, puts it back in drafts, and opens it for editing
+                var obs = app.observation.get(id);
+                if(obs != null)
+                {
+                    obs._ID = app.observation.getKey("DRAFT");
+                    obs._STATUS = "draft";
+                    app.observation.save(obs);
+                    app.observation.remove(id);
+                    app.observation.drafts.edit(obs._ID);
+                    app.showPage("observation");
+                }
+            }
+        },
+        sent : {
+            get : function(id) {
+                return app.observation.get(id);
+            },
+            list : function() {
+                return app.observation.list("SENT");
+            }  ,
+            count : function() {
+                return app.observation.count("SENT");
+            }
         },
         scatter : function() {
             if(this.current != null)
@@ -212,40 +324,38 @@ var app = {
                         $(this).val("");
                 });
 
-                //checkers
-                $(".observation-page .category-block").each(function () {
-                    var val = $(this).attr("category");
-                    $(this).removeClass("selected");
-                    if (self.current.Categories != null && self.current.Categories.length > 0)
-                    {
-                        for (var i = 0; i < self.current.Categories.length; i++) {
-                            if(val == self.current.Categories[i])
-                                $(this).addClass("selected");
-                        }
-                    }                    
-                });
+                self.categories.scatter();
+                self.photos.scatter();
             }
 
             this.setTitle();
         },
-        getDraft : function(id) {
-            var d = window.localStorage.getItem(id);
-            if(d != null)
-                return JSON.parse(d);
-            else
-                return null;
-        },
-        editDraft : function(id) {
-            var d = this.getDraft(id);
-            if(d != null)
-            {
-                this.edit(d);
+        categories : {
+            scatter : function() {
+                var current = app.observation.current;
+
+                //checkers
+                $(".observation-page .category-block").each(function () {
+                    var val = $(this).attr("category");
+                    $(this).removeClass("selected");
+                    if (current.Categories != null && current.Categories.length > 0)
+                    {
+                        for (var i = 0; i < current.Categories.length; i++) {
+                            if(val == current.Categories[i])
+                                $(this).addClass("selected");
+                        }
+                    }                    
+                });
+            },
+            gather : function() {
+                app.observation.current.Categories = [];
+                $(".observation-page .category-block").each(function() {
+                    if($(this).hasClass("selected"))
+                        app.observation.current.Categories.push($(this).attr("category"));
+                });
+
             }
-            else
-            {
-                app.notify("Can't find your draft.");
-            }
-        },
+        },        
         deleteDraft : function() {
             if(this.current != null)
             {
@@ -253,7 +363,7 @@ var app = {
                 navigator.notification.confirm("Are you sure?", function(btn) {
                     if(btn == 1)
                     {
-                        window.localStorage.removeItem(self.current._ID);
+                        self.remove(self.current._ID);
                         self.startOver();
                         app.notify("Deleted your draft.");        
                     }
@@ -261,7 +371,7 @@ var app = {
             }
         },
         startOver : function() {
-            window.localStorage.removeItem("UNSAVEDOBSERVATION");
+            this.remove("UNSAVEDOBSERVATION");
             this.edit();
             this.show("headline-page");
         },
@@ -302,7 +412,60 @@ var app = {
                 this.current._CURRENTSTEP = id;
             }
 			$("#" + id).fadeIn();
-		}
+        },
+        photos : {
+            scatter : function() {
+                var tmp = $("#photo-thumbnail-template").html();
+                $("#photo-thumbnails").html("");
+                var h = "";
+                var current = app.observation.current;
+                for(var i = 0; i < current.Photos.length; i++)
+                {
+                    current.Photos[i].Index = i; //needed for the template
+                    h += Mustache.render(tmp, current.Photos[i]);
+                }
+                $("#photo-thumbnails").html(h);
+            },
+            add : function() {
+                var self = this;
+                var current = app.observation.current;
+                var opts = {
+                    quality : 50,
+                    destinationType : Camera.DestinationType.FILE_URI,
+                    sourceType : Camera.PictureSourceType.CAMERA,
+                    allowEdit : true,
+                    encodingType: Camera.EncodingType.JPEG,
+                    targetWidth: 1000,
+                    targetHeight: 1000,
+                    mediaType: Camera.MediaType.PICTURE,
+                    correctOrientation: true,
+                    saveToPhotoAlbum : false, //could make this an option later
+                    popoverOptions : null, //IOS thing
+                    cameraDirection : Camera.Direction.BACK //could make this an option too
+                };
+    
+                navigator.camera.getPicture(function(imgData) {
+                    
+                    var att = {
+                        Data: imgData,
+                        Caption: null
+                    }
+    
+                    current.Photos.push(att);
+                    app.observation.save();
+
+                    self.scatter();
+                        
+                }, function(errorMsg) {
+                    navigator.notification.alert(errorMsg, null, "Error", "OK");
+                }, opts);
+            },
+    
+            remove : function(i) {
+                
+            }
+        }
+
     },
 
     
@@ -312,23 +475,39 @@ var app = {
 
     showingPage : function(id) {
         //use this to run some code upon showing a page
+        var $el = $("#" + id);
         if(id == "settings")
         {
             app.settings.scatter();
         } 
         else if(id == "drafts")
         {
-            var drafts = this.observation.drafts();
+            var drafts = this.observation.drafts.list();
             if(drafts.length > 0)
             {
                 var template = $("#drafts-template").html();
                 h = Mustache.render(template, {drafts:drafts});
-                $("#drafts_list").html(h);
-                $("#drafts_list ul").listview();
+                $el.find(".ui-content").html(h);
+                $el.find(".ui-content ul").listview();
             }
             else
             {
-                $("#drafts_list").html("<h3 class='nonefound'>No drafts</h3>");
+                $el.find(".ui-content").html("<h3 class='nonefound'>No drafts</h3>");
+            }
+        }
+        else if(id == "outbox")
+        {
+            var drafts = this.observation.outbox.list();
+            if(drafts.length > 0)
+            {
+                var template = $("#outbox-template").html();
+                h = Mustache.render(template, {drafts:drafts});
+                $el.find(".ui-content").html(h);
+                $el.find(".ui-content ul").listview();
+            }
+            else
+            {
+                $el.find(".ui-content").html("<h3 class='nonefound'>Nothing in your Outbox</h3>");
             }
         }
         else if(id == "observation")
