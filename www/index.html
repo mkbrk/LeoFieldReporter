@@ -45,16 +45,28 @@
 		document.addEventListener('deviceready', function() {
             //start-up code in here...
             $.support.cors = true;
-			$.mobile.allowCrossDomainPages = true;			
-		}, false);
-		
-		$(function() {
+			$.mobile.allowCrossDomainPages = true;	
+			$.mobile.hashListeningEnabled = false;
+			$.mobile.pushStateEnabled = false;
+			$.mobile.changePage.defaults.changeHash = false;
+
+
+			$( window ).on( "navigate", function( event, data ) {
+				console.log( data.state.info );
+				console.log( data.state.direction )
+				console.log( data.state.url )
+				console.log( data.state.hash )
+			});
 
 			app.settings.load();
 			app.settings.scatter();
+			app.observation.initialize();
 
-			app.drafts.scatter();
+			
+		}, false);
 
+		
+		$(function() {			
 			//need to explicitly activate these since they are outside of a page
 			$("body>[data-role='panel']" ).panel();
 			$("#navigationOptions").listview();
@@ -81,11 +93,14 @@
 				$("#categories_NATURAL").html(groups.NATURAL.join(""));
 				$("#categories_EVENT").html(groups.EVENT.join(""));
 				$("#categories_HUMAN").html(groups.HUMAN.join(""));
+
+				for (var i = 0; i < res.length; i++) {
+					//this is important for getting it to scale properly
+					$("#categoryblock-" + res[i].CategoryID).find("svg").attr("width", "60").attr("height", "60");
+				};
 			}, "json");
 		})
 
-		//app.initialize();
-		//observing.initialize();
 		</script>
 
 		<style>
@@ -97,6 +112,25 @@
 				display: inline-block;
 				width:100px;
 				height:100px;
+				border:4px solid silver;
+				border-radius: 4px;
+				text-align: center;
+				margin:5px;
+				margin-bottom: 10px;
+				vertical-align: bottom;
+				background-color:white;
+			}
+
+			.selected {
+				border-color:#4CAF50;
+				background-color: rgba(139, 195, 74, 0.486);
+			}
+
+			.category-block div {
+				overflow: hidden;
+				text-overflow: ellipsis;
+				height:32px;
+				font-size:80%;
 			}
 
 			.nonefound {
@@ -110,20 +144,38 @@
     <title>LEO Field Reporter</title>
 </head>
 
+<script>
+	function toggleChecked(el) {
+		$(el).toggleClass("selected");
+		event.preventDefault();
+		$(el).trigger("change");
+	}
+</script>
 
+<!--mustache templates-->
+<script id="category-block-template" type="template/mustache">
+	<div class="category-block" onclick="toggleChecked(this);" id="categoryblock-{{CategoryID}}" category="{{CategoryID}}">
+		{{{IconSvg}}}
+		<div>{{CategoryName}}</div>
+	</div>
+</script>
+
+<script id="drafts-template" type="template/mustache">
+	<ul>
+		{{#drafts}}
+			<li>
+				<a href="javascript:app.showPage('observation');app.observation.editDraft('{{_ID}}');">
+					<h2>{{ObservationTitle}}{{^ObservationTitle}}Untitled Observation{{/ObservationTitle}}</h2>
+					<p>Updated {{_UPDATED}}</p>
+				</a>
+			</li>
+		{{/drafts}}
+	</ul>
+</script>
 
 <body class="clr-accent-blue">
 
-	<script id="category-block-template" type="template/mustache">
-		<div class="category-block">
-			<label>
-				<input class="checkbox-inline" type="checkbox" name="CategoryID" value="{{CategoryID}}" />
-				{{{IconSvg}}}
-				<div>{{CategoryName}}</div>
 	
-			</label>
-		</div>
-	</script>
 
 	<div data-role="page" id="home">
 
@@ -133,28 +185,46 @@
 			<p>home page</p>
 		</div>
 	
-		<nd2-include data-src="footer.html"></nd2-include>
 	</div><!-- /page -->
 
 	<script>
-		function observationPage(id) {
-			$(".observation-page").hide();
-			$("#" + id).fadeIn();
-		}
+		
 	</script>
 
-	<div data-role="page" id="newobservation">
+	<div data-role="page" id="observation">
 
-		<nd2-include data-src="header.html"></nd2-include>
+		<!--custom header for this page only-->
+		<div data-role="header" data-position="fixed" class="wow fadeIn" data-tap-toggle="false">
+			<a href="#editingoptions" id="editingOptionsButton" class="ui-btn ui-btn-right wow fadeIn" data-wow-delay='1.2s'><i class="zmdi zmdi-more-vert"></i></a>
+			<a href="#leftpanel" class="ui-btn ui-btn-left wow fadeIn" data-wow-delay='0.8s'><i class="zmdi zmdi-menu"></i></a>
+			<h1 class="wow fadeIn" data-wow-delay='0.4s'><img src="img/logo.png" style="max-width:30px;vertical-align: middle;" /> Field Reporter</h1>
+		</div>
 	
 		<div role="main" class="ui-content">
+			<div id="current-observation-title" style="color:gray;"></div>
+
+			<div id="continue-page" class="observation-page" style="display:none;">
+				<h3>You have an unsaved draft. Do you want to continue editing it?</h3>
+
+				<div>
+					<button type="button" onclick="app.observation.continueEditing();" class="ui-btn ui-btn-icon-right clr-btn-green" >
+						Continue Editing
+						<i class="zmdi zmdi-chevron-right"></i>
+					</button>
+					<button type="button" onclick="app.observation.startOver();" class="ui-btn  ui-btn-icon-left " >
+						<i class="zmdi zmdi-refresh"></i>
+						Start Over
+					</button>
+				</div>
+			</div>
+
 			<div id="headline-page" class="observation-page">
 				<h3>What's your headline?</h3>
 				<h5>This will be the title of your post</h5>
 				<input type="text" name="ObservationTitle" id="ObservationTitle" value="" />
 
 				<div>
-					<button type="button" onclick="observationPage('date-page');" class="ui-btn ui-btn-raised ui-btn-icon-right" >
+					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
 						Next
 						<i class="zmdi zmdi-chevron-right"></i>
 					</button>
@@ -166,12 +236,12 @@
 				<input type="date" name="ObservationDate" id="ObservationDate" value="" />
 
 				<div>
-					<button type="button" onclick="observationPage('text-page');" class="ui-btn ui-btn-raised ui-btn-icon-right" >
+					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
 						Next
 						<i class="zmdi zmdi-chevron-right"></i>
 					</button>
 
-					<button type="button" onclick="observationPage('headline-page');" class="ui-btn  ui-btn-icon-left" >
+					<button type="button" onclick="app.observation.previous();" class="ui-btn  ui-btn-icon-left" >
 							<i class="zmdi zmdi-chevron-left"></i>
 						Previous</button>
 				</div>
@@ -180,11 +250,17 @@
 			<div id="text-page" class="observation-page" style="display: none;">
 				<h3>Please describe your observation</h3>
 				<h5>Why is it unusual or significant?</h5>
-				<textarea rows="10" name="ObservationText" id="ObservationText"></textarea>
+				<textarea rows="10" style="min-height: 100px;" name="ObservationText" id="ObservationText"></textarea>
 
-				<div style="text-align: center;">
-					<button type="button" onclick="observationPage('date-page');" class="ui-btn ui-btn-inline ui-icon-arrow-l ui-btn-icon-left" >Previous</button>
-					<button type="button" onclick="observationPage('photos-page');" class="ui-btn ui-btn-inline ui-icon-arrow-r ui-btn-icon-right" >Next</button>
+				<div>
+					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
+						Next
+						<i class="zmdi zmdi-chevron-right"></i>
+					</button>
+
+					<button type="button" onclick="app.observation.previous();" class="ui-btn  ui-btn-icon-left" >
+							<i class="zmdi zmdi-chevron-left"></i>
+						Previous</button>
 				</div>
 			</div>
 
@@ -194,9 +270,15 @@
 				<button type="button" onclick="" class="ui-btn ui-icon-camera ui-btn-icon-left" >Take Photo or Video</button>
 				<button type="button" onclick="" class="ui-btn ui-icon-plus ui-btn-icon-left" >Choose Photo or Video</button>
 
-				<div style="text-align: center;">
-					<button type="button" onclick="observationPage('text-page');" class="ui-btn ui-btn-inline ui-icon-arrow-l ui-btn-icon-left" >Previous</button>
-					<button type="button" onclick="observationPage('categories-page');" class="ui-btn ui-btn-inline ui-icon-arrow-r ui-btn-icon-right" >Next</button>
+				<div>
+					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
+						Next
+						<i class="zmdi zmdi-chevron-right"></i>
+					</button>
+
+					<button type="button" onclick="app.observation.previous();" class="ui-btn  ui-btn-icon-left" >
+							<i class="zmdi zmdi-chevron-left"></i>
+						Previous</button>
 				</div>
 			</div>
 
@@ -220,49 +302,87 @@
 
 				<div id="categories_HUMAN"></div>
 
-				<div style="text-align: center;">
-					<button type="button" onclick="observationPage('photos-page');" class="ui-btn ui-btn-inline ui-icon-arrow-l ui-btn-icon-left" >Previous</button>
-					<button type="button" onclick="observationPage('finished-page');" class="ui-btn ui-btn-inline ui-icon-arrow-r ui-btn-icon-right" >Next</button>
+				<div>
+					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
+						Next
+						<i class="zmdi zmdi-chevron-right"></i>
+					</button>
+
+					<button type="button" onclick="app.observation.previous();" class="ui-btn  ui-btn-icon-left" >
+							<i class="zmdi zmdi-chevron-left"></i>
+						Previous</button>
 				</div>
 			</div>
 
 			<div id="finished-page" class="observation-page" style="display: none;">
-				<h3>And... you're done.</h3>
+				<h3>Finish Your Observation</h3>
+
+				<div>
+						<button type="button" onclick="app.observation.saveAsDraft();" class="ui-btn  clr-btn-green ui-btn-icon-left" >
+							<i class="zmdi zmdi-save"></i>
+							Save as Draft
+						</button>
+						<br>
+						<button type="button" onclick="app.observation.send();" class="ui-btn  clr-btn-green ui-btn-icon-left" >
+							<i class="zmdi zmdi-mail-send"></i>
+							Send Now
+						</button>
+						<br>
+						<button type="button" onclick="app.observation.previous();" class="ui-btn  ui-btn-icon-left" >
+							<i class="zmdi zmdi-chevron-left"></i>
+						Previous</button>
+						<br>
+						<button type="button" onclick="app.observation.abandon();" class="ui-btn  ui-btn-icon-left" >
+							<i class="zmdi zmdi-delete"></i>
+						Delete Observation</button>
+
+					</div>
+			</div>
+
+			<div data-role="panel" id="editingoptions" class="ui-bottom-sheet ui-bottom-sheet-list" data-animate="false" data-position='bottom' data-display="overlay">
+				<div class='row around-xs'>
+					<div class='col-xs-auto'>
+						<a href='javascript:app.observation.saveAsDraft();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><i class='zmdi zmdi-save zmd-2x'></i><strong>Save Draft</strong></a>
+					</div>
+					<div class='col-xs-auto'>
+						<a href='javascript:app.observation.deleteDraft();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><i class='zmdi zmdi-delete zmd-2x'></i><strong>Delete Draft</strong></a>
+					</div>
+				</div>
 			</div>
 
 		</div>
 	
-		<nd2-include data-src="footer.html"></nd2-include>
-	</div><!-- /page -->
+		
+	</div>
 
 	<div data-role="page" id="drafts">
 
 			<nd2-include data-src="header.html"></nd2-include>
 		
 			<div role="main" class="ui-content">
-				
+				<div id="drafts_list"></div>
 			</div>
 		
-			<nd2-include data-src="footer.html"></nd2-include>
-		</div><!-- /page -->
+		</div><
 
-	<div data-role="page" id="signInPage">
+	<div data-role="page" id="sign-in">
 
 			<nd2-include data-src="header.html"></nd2-include>
 		
 			<div role="main" class="ui-content">
-				<label for="emailAddress">Email Address</label>
-				<input type="email" name="emailAddress" id="emailAddress" value="" data-clear-btn="true">
-				<label for="password">Password</label>
-				<input type="password" name="password" id="password" value="" >
 
-				<button class="ui-btn">Sign In</button>
-			</div><!-- /content -->
+				<h3>Sign In</h3>
+
+				<label for="emailAddress">Email Address</label>
+				<input type="email" name="LoginName" value="" data-clear-btn="true">
+				<label for="password">Password</label>
+				<input type="password" name="Password" value="" >
+
+				<button class="ui-btn  clr-btn-green" onclick="app.doSignIn();">Sign In</button>
+			</div>
 		
-			<nd2-include data-src="footer.html"></nd2-include>
-		</div><!-- /page -->
+		</div>
 	
-	<!-- Start of second page -->
 	<div data-role="page" id="settings">
 	
 		<nd2-include data-src="header.html"></nd2-include>
@@ -286,7 +406,6 @@
 
 		</div>
 	
-		<nd2-include data-src="footer.html"></nd2-include>
 	</div>
 
 	<div data-role="page" id="about">
@@ -305,25 +424,23 @@
 
 			</div>
 		
-			<nd2-include data-src="footer.html"></nd2-include>
 		</div>
   
 	<!--menu-->
 	<div data-role="panel" id="leftpanel" data-display="overlay" data-position-fixed="true" data-theme="a" >
-			<div style="text-align:center;"><img src="img/logo.png" />
+			<div style="text-align:center;">
+				<a href="javascript:app.showPage('home');"><img src="img/logo.png" /></a>
 				<h3>Local Environmental Observer Network</h3>
 			</div>
 			
 			<hr/>
 
 			<ul id="navigationOptions" data-role="listview" data-icon="false">
-				<li><a href="#newobservation">Make an Observation</a></li>
-				<li><a href="#drafts">Drafts</a></li>
-				<li><a href="#settings">Settings</a></li>
-				<li><a href="#about">About</a></li>
+				<li><a href="javascript:app.showPage('observation');app.observation.start();">Make an Observation</a></li>
+				<li><a href="javascript:app.showPage('drafts');">Drafts</a></li>
+				<li><a href="javascript:app.showPage('about');">About</a></li>
+				<li><a href="javascript:app.showPage('settings');">Settings</a></li>
 			</ul>
-
-			<hr/>
 
 	</div>
 </body>
