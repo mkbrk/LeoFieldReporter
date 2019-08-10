@@ -326,6 +326,7 @@ var app = {
 
                 self.categories.scatter();
                 self.photos.scatter();
+                self.videos.scatter();
             }
 
             this.setTitle();
@@ -416,7 +417,7 @@ var app = {
         photos : {
             scatter : function() {
                 var tmp = $("#photo-thumbnail-template").html();
-                $("#photo-thumbnails").html("");
+                $("#photos-page .thumbnails").html("");
                 var h = "";
                 var current = app.observation.current;
                 for(var i = 0; i < current.Photos.length; i++)
@@ -424,15 +425,17 @@ var app = {
                     current.Photos[i].Index = i; //needed for the template
                     h += Mustache.render(tmp, current.Photos[i]);
                 }
-                $("#photo-thumbnails").html(h);
+                $("#photos-page .thumbnails").html(h);
             },
-            add : function() {
+            add : function(srcType) {
                 var self = this;
+                if(!srcType || srcType == null)
+                    srcType = Camera.PictureSourceType.CAMERA;
                 var current = app.observation.current;
                 var opts = {
                     quality : 50,
                     destinationType : Camera.DestinationType.FILE_URI,
-                    sourceType : Camera.PictureSourceType.CAMERA,
+                    sourceType : srcType,
                     allowEdit : true,
                     encodingType: Camera.EncodingType.JPEG,
                     targetWidth: 1000,
@@ -457,14 +460,62 @@ var app = {
                     self.scatter();
                         
                 }, function(errorMsg) {
-                    navigator.notification.alert(errorMsg, null, "Error", "OK");
+                    app.notify(errorMsg);
                 }, opts);
             },
     
             remove : function(i) {
                 
             }
+        },
+        videos : {
+            scatter : function() {
+                var tmp = $("#video-thumbnail-template").html();
+                $("#videos-page .thumbnails").html("");
+                var h = "";
+                var current = app.observation.current;
+                for(var i = 0; i < current.Videos.length; i++)
+                {
+                    current.Videos[i].Index = i; //needed for the template
+                    h += Mustache.render(tmp, current.Videos[i]);
+                }
+                $("#videos-page .thumbnails").html(h);
+            },
+            record : function() {
+                var self = this;
+                var current = app.observation.current;
+
+                navigator.device.capture.captureVideo(function(mediaFiles) {
+                    if(mediaFiles.length > 0)
+                    {
+                        mediaFiles[0].getFormatData(function(mediaFileData) {
+
+                            var att = {
+                                Data: mediaFiles[0].fullPath,
+                                Type : mediaFiles[0].type,
+                                Size : mediaFiles[0].size,
+                                Duration : mediaFileData.duration,
+                                Caption: null
+                            }
+    
+                            current.Videos.push(att);
+                            app.observation.save();
+        
+                            self.scatter();
+                        });
+
+                    }
+
+                }, function(error) {
+                    app.notify(error.message);
+                }, {limit:1, duration: 30});
+            },
+    
+            remove : function(i) {
+                
+            }
         }
+
 
     },
 

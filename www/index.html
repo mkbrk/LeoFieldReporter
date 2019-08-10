@@ -171,7 +171,17 @@
 	<div class="photo-thumbnail" index="{{Index}}">
 		<img style="width:100%;" src="{{Data}}" />
 		<div><input type="text" placeholder="Caption" value="{{Caption}}"/></div>
-		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="app.removePhoto({{Index}});"><i class="zmdi zmdi-delete"></i> Remove</a></div>
+		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="app.observation.photos.remove({{Index}});"><i class="zmdi zmdi-delete"></i> Remove</a></div>
+	</div>
+</script>
+
+<script id="video-thumbnail-template" type="template/mustache">
+	<div class="video-thumbnail" index="{{Index}}">
+		<video style="width:100%;" controls>
+				<source src="{{Data}}" type="{{Type}}">
+		</video>
+		<div><input type="text" placeholder="Caption" value="{{Caption}}"/></div>
+		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="app.observation.video.remove({{Index}});"><i class="zmdi zmdi-delete"></i> Remove</a></div>
 	</div>
 </script>
 
@@ -295,16 +305,41 @@
 			</div>
 
 			<div id="photos-page" class="observation-page" style="display: none;">
-				<h3>Add photos or videos to support your observation</label>
-				
+				<h3>Add photos to support your observation</label>
+
+					<div class="thumbnails">
+
+					</div>
+
 					<div>
-						<button type="button" onclick="app.observation.photos.add();" class="ui-btn ui-icon-camera ui-btn-icon-left ui-btn-inline">Take Photo/Video</button>
-						<button type="button" onclick="" class="ui-btn ui-icon-plus ui-btn-icon-left ui-btn-inline">Choose Photo/Video</button>
+						<button type="button" onclick="app.observation.photos.add(Camera.PictureSourceType.CAMERA);" class="ui-btn ui-btn-icon-left clr-btn-purple"><i class="zmdi zmdi-camera-add"></i> Take Photo</button>
+						<button type="button" onclick="app.observation.photos.add(Camera.PictureSourceType.SAVEDPHOTOALBUM);" class="ui-btn ui-btn-icon-left clr-btn-blue"><i class="zmdi zmdi-collection-image"></i> Choose Photo</button>
 					</div>
 
-					<div id="photo-thumbnails">
+				<div>
+					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
+						Next
+						<i class="zmdi zmdi-chevron-right"></i>
+					</button>
+
+					<button type="button" onclick="app.observation.previous();" class="ui-btn  ui-btn-icon-left" >
+							<i class="zmdi zmdi-chevron-left"></i>
+						Previous</button>
+				</div>
+			</div>
+
+			<div id="videos-page" class="observation-page" style="display: none;">
+				<h3>Add videos to support your observation</label>
+
+					<div class="thumbnails">
 
 					</div>
+
+					<div>
+						<button type="button" onclick="app.observation.videos.record();" class="ui-btn ui-btn-icon-left clr-btn-purple"><i class="zmdi zmdi-videocam"></i> Record Video</button>
+						<button type="button" onclick="app.observation.videos.choose();" class="ui-btn ui-btn-icon-left clr-btn-blue"><i class="zmdi zmdi-collection-video"></i> Choose Video</button>
+					</div>
+
 				<div>
 					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
 						Next
