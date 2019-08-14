@@ -6,6 +6,86 @@ var app = {
         });
     },
 
+    dateTimeReviver : function (key, value) {
+        var a;
+        if (typeof value === 'string') {
+            a = /\/Date\((\d*)\)\//.exec(value);
+            if (a) {
+                return new Date(+a[1]);
+            }
+        }
+        return value;
+    },
+
+    //some stuff to get posts from LEO - maybe useful elsewhere
+    latest : {
+        saveToCache : function(posts) {
+            if(posts != null)
+                window.localStorage.setItem("LATESTPOSTS", JSON.stringify(posts));
+        },
+        getFromCache : function(callback) {
+            var c = window.localStorage.getItem("LATESTPOSTS");
+            if(c != null)
+            {
+                if(callback)
+                    callback(JSON.parse(c));
+            }
+            else
+            {
+                //if not already in cache,
+                //get from bundle, store in cache, and call callback
+                var self = this;
+                this.getFromBundle(function(data) {
+                    self.saveToCache(data);
+                    if(callback)
+                        callback(data);
+                })
+            }
+        },
+        getFromServer : function(callback) {
+            var self = this;
+            if(navigator.connection.type == Connection.NONE)
+            {
+                self.getFromCache(callback);
+            }
+            else
+            {
+                $.get(app.getRemoteUrl("/en/fieldreporter/latest"), null, function(res) {
+                    self.saveToCache(res);
+                    if(callback)    
+                        callback(res);
+                }, "json");
+            }
+
+        },
+        getFromBundle : function(callback) {
+            $.get("data/latest.json", null, function(res) {
+                if(callback)    
+                    callback(res);
+            }, "json");
+        },
+        refresh : function() {
+            this.getFromServer(function(res) {
+                if(res != null && res.length > 0)
+                {
+                    var tmp = $("#post-card").html();
+                    var h = "";
+                    for(var i = 0; i < res.length; i++)
+                    {
+                        var d = app.dateTimeReviver(null, res[i].ObservationDate);
+                        res[i].ObservationDateFriendly = moment(d).format("MMM Do, YYYY");
+                        h += Mustache.render(tmp, res[i]);
+                    }
+                    $("#latest").html(h);
+                }
+                else
+                {
+                    $("#latest").html("<h3 class='nonefound'>Unable to get latest posts from the LEO Network.</h3>");
+                }
+            });
+        }
+    },
+
     //this should be useful on other apps
     settings : {
         _values : {
@@ -92,26 +172,115 @@ var app = {
         getUnsavedDraft : function() {
             return this.get("UNSAVEDOBSERVATION");
         },
+        
         setTitle : function() {
             if(this.current != null)
             {
+                var s = "<span class='status-badge' style='background-color:" + this.statuses[this.current._STATUS].color + "'>" + this.statuses[this.current._STATUS].name + "</span>"
                 if(this.current.ObservationTitle)      
-                    $("#current-observation-title").html(this.current.ObservationTitle);
+                    $("#current-observation-title").html(s + " " + this.current.ObservationTitle);
                 else
-                    $("#current-observation-title").html("");
+                    $("#current-observation-title").html(s);
             }
             else
             {
                 $("#current-observation-title").html("");
             }
         },
+        
+        //statuses:
+        //1. unsaved draft
+        //2. draft (once saved as a draft or edited while waiting to send)
+        //3. waiting to send (once moved to the outbox)
+        //4. sending (once the send loop has it) - this is multipart process including all attachments, etc.
+        //5. sent (once the sending process is done)
+
+        statuses : {
+            "U" : {
+                name : "Unsaved Draft", 
+                color: "#607D8B",
+                next: ["D","W"],
+                key : "UNSAVEDOBSERVATION"
+            },
+            "D" : {
+                name : "Draft",
+                color: "#03A9F4",
+                next : ["W"],
+                key : "DRAFT_#"
+            },
+            "W" : {
+                name : "Waiting to Send",
+                color: "#673AB7",
+                next: ["D", "P"],
+                key : "PENDING_#"
+            },
+            "P" : {
+                name : "Sending",
+                color: "#FF5722",
+                next: ["S", "E"],
+                key : "PENDING_#"
+            },
+            "E" : {
+                name: "Send Error",
+                color: "#E91E63",
+                next: ["P"],
+                key : "PENDING_#"
+            },
+            "S" : {
+                name : "Sent",
+                color : "#4CAF50",
+                next: [],
+                key : "SENT_#"
+            }
+        },
+        setStatus : function(status, obj) {
+            if(!obj || obj == null)
+                obj = app.observation.current;
+
+            if(obj._STATUS != status) //only if the status has changed
+            {
+                var curr = this.statuses[obj._STATUS];
+                var next = this.statuses[status];
+                if(curr != null && next != null)
+                {
+                    if(curr.next.indexOf(status) >= 0)
+                    {
+                        var oldID = obj._ID; //will save over the old one
+
+                        //get a new ID for it
+                        var rand = 1000 * Math.random();
+                        var newID = next.key.replace("#", rand);
+
+                        obj._ID = newID;
+                        obj._STATUS = status;
+                        obj.Status = next;
+
+                        app.observation.save(obj);
+                        app.observation.remove(oldID);
+
+                        return true;
+                    }
+                    else
+                        return false;
+                }
+                else
+                    return false;
+            }
+            else
+            {
+                return true;
+            }
+
+        },
         defaultObservation : function() {
             return {
+                ObservationID: null, //will be filled in once it is saved to server
                 ObservationTitle: null,
                 ObservationDate: moment().format("YYYY-MM-DD"),
                 ObservationDescription: null,
                 LocationLat: null,
                 LocationLng: null,
+                LocationDescription : null,
                 Categories: [],
                 Photos: [],
                 Videos: [],
@@ -120,7 +289,7 @@ var app = {
                 //metadata fields
                 _ID : "UNSAVEDOBSERVATION",
                 _CURRENTSTEP:"headline-page",
-                _STATUS: "current",
+                _STATUS: "U",
                 _CREATED: moment().format("YYYY-MM-DD"),
                 _UPDATED: moment().format("YYYY-MM-DD")
             };
@@ -142,11 +311,17 @@ var app = {
         get : function(id) {
             var c = window.localStorage.getItem(id);
             if(c != null)
-                return JSON.parse(c);
+            {
+                var o = JSON.parse(c);
+                o.Status = app.observation.statuses[o._STATUS];
+
+                return o;
+            }
             else
                 return null;
         },
         list : function(prefix) {
+            //this should be the only place we do an access like this
             var d = [];
             for (var i = 0; i < window.localStorage.length; i++) {
                 var key = window.localStorage.key(i);
@@ -154,6 +329,12 @@ var app = {
                     d.push(JSON.parse(window.localStorage.getItem(key)));
                 }
             }
+
+            //merges the status info into the objects
+            d.forEach(function(val) {
+                val.Status = app.observation.statuses[val._STATUS];
+            });
+
             return d;
         },
         count : function(prefix) {
@@ -180,7 +361,7 @@ var app = {
             else
             {
                 if(!obs._ID || obs._ID == null)
-                obs._ID = "UNSAVEDOBSERVATION";
+                    obs._ID = "UNSAVEDOBSERVATION";
 
                 obs._UPDATED = moment().format("YYYY-MM-DD");
                 window.localStorage.setItem(obs._ID, JSON.stringify(obs));
@@ -188,26 +369,8 @@ var app = {
         },
         saveAsDraft : function() {
             //takes the current observation and stashes it in a draft
-            this.current._STATUS = "draft";
-            var doStartOver = false;
-            if(this.current._ID == null || this.current._ID == "UNSAVEDOBSERVATION")
-            {
-                doStartOver = true;
-                this.current._ID = this.getKey("DRAFT");
-            }
-
-            window.localStorage.setItem(this.current._ID, JSON.stringify(this.current));
-            if(doStartOver)
-            {
-                //only start over if an unsaved observation was saved
-                this.startOver();
-                app.notify("Saved your draft. It's available in your Drafts area.");
-            }
-            else
-            {
-                app.notify("Saved your draft.");
-            }
-
+            app.observation.setStatus("D"); //saves internally
+            app.showPage("saved-draft-confirmation");
         },
         edit : function(obs) {
             this.setCurrent(obs || this.defaultObservation());
@@ -230,6 +393,180 @@ var app = {
             {
                 console.log(JSON.stringify(this.current));
             }
+        },
+        sendNext : function() {
+            var ob = app.observation.outbox.list();
+            for(var i = 0; i < ob.length; i++)
+            {
+                if(ob[i]._STATUS == "W") //waiting to send
+                {
+                    this.send(ob[i]._ID);
+                }
+            }
+        },
+        //sends a single one by key
+        send : function (key)
+        {
+            if (app.isSignedIn() && navigator.onLine) {
+                var obj = app.observation.outbox.get(key);
+                if(obj && obj != null)
+                {
+                    if(obj._STATUS == "P" || app.observation.setStatus("P", obj)) //already sending or can send
+                    {
+                        obj._ERROR = null; //clear this out so that it can be reset if an error happens
+                        app.observation.save(obj);
+
+                        if(obj.ObservationID && obj.ObservationID != null)
+                        {
+                            console.log("Already sent observation...sending attachments now");
+                            //if already have the ObservationID - just save the attachments
+                            app.observation.sendAttachments(obj);
+                        }
+                        else
+                        {
+                            console.log("Sending observation.");
+                            //otherwise, need to save this to the server first
+                            $.ajax({
+                                url: app.getRemoteUrl("/en/fieldreporter/send"),
+                                method: "POST",
+                                contentType: 'application/json; charset=utf-8',
+                                dataType: "json",
+                                data: JSON.stringify(obj),
+                                headers: {
+                                    "x-leo-header": app.getToken()
+                                }, 
+                                success : function (res) {
+                                    if(res.Status == "OK")
+                                    {
+                                        console.log("Saved observation with ID " + res.ObservationID);
+                                        obj.ObservationID = res.ObservationID;
+                                        app.observation.save(obj);
+                                        app.observation.sendAttachments(obj);
+                                    }
+                                    else
+                                    {
+                                        console.log("error from the server: " + res.Message);
+                                        obj._ERROR = res.Message;   
+                                        app.observation.setStatus("E", obj);
+                                    }
+                                },
+                                error : function(jqr, status) {
+                                    console.log("error at the network level:" + status);
+                                    obj._ERROR = status;   
+                                    app.observation.setStatus("E", obj);
+                                }
+                            });
+                        }
+                    }
+                    else    
+                        console.log("Can't be sent in that state - must be in status P or W.");   
+                }
+                else
+                    console.log("Invalid object key.");   
+            }
+            else
+            {
+                console.log("You are either not online or not signed in.");   
+            }
+        },
+        sendAttachments : function(obj) {
+            if(navigator.onLine)
+            {
+                if(obj && obj != null)
+                {
+                    if(obj._STATUS == "P") //"Sending"
+                    {
+                        if(obj.ObservationID && obj.ObservationID != null)
+                        {
+                            console.log("Sending photos");
+                            var sendMe = [];
+                            
+                            for(var i = 0; i < obj.Photos.length; i++)
+                            {
+                                if(!obj.Photos[i].AttachmentID || obj.Photos[i].AttachmentID == null)
+                                    sendMe.push(obj.Photos[i]);
+                            }
+
+                            for(var i = 0; i < obj.Videos.length; i++)
+                            {
+                                if(!obj.Videos[i].AttachmentID || obj.Videos[i].AttachmentID == null)
+                                    sendMe.push(obj.Videos[i]);
+                            }
+
+
+                            for(var i = 0; i < sendMe.length; i++)
+                            {
+                                var clone = JSON.parse(JSON.stringify(sendMe[i]));
+                                window.resolveLocalFileSystemURL(clone.Data, function(fileEntry) {
+                                    fileEntry.file(function(file) {
+                                        console.log("About to read file: " + file.name);
+                                        console.log(file.size);
+                                        var reader = new FileReader();
+                                 
+                                        reader.onloadend = function() {
+                                            console.log("Read file, ready to send it");
+
+                                            clone.Data = this.result;
+
+                                            $.ajax({
+                                                url: app.getRemoteUrl("/en/fieldreporter/attach/" + obj.ObservationID),
+                                                method: "POST",
+                                                contentType: 'application/json; charset=utf-8',
+                                                dataType: "json",
+                                                data: JSON.stringify(clone),
+
+                                                success : function (res) {
+                                                    console.log("Success sending attachment");
+                                                    console.log(JSON.stringify(res));
+
+                                                    if(res.Status == "OK")
+                                                    {
+                                                        sendMe[i]._STATUS = "sent";
+                                                        sendMe[i].AttachmentID = res.AttachmentID;
+                                                    }
+                                                    else
+                                                    {
+                                                        sendMe[i]._STATUS = "error";
+                                                        sendMe[i]._MESSAGE = res.Message;   
+                                                    }
+                                                    app.observation.save(obj);
+                                                },
+                                                error : function(jqr, status) {
+                                                    console.log(status);
+                                                    sendMe[i]._STATUS = "error";
+                                                    sendMe[i]._MESSAGE = status;   
+                                                    app.observation.save(obj);
+                                                }
+                                            });
+                                        };
+                                 
+                                        reader.readAsDataURL(file);
+                                     }, function(err) {
+                                         console.log(err);
+                                     });
+                                });
+                            }
+                        }
+                        else
+                        {
+                            console.log("ObservationID not present...can't send attachments.");
+                        }
+                    }
+                    else
+                    {
+                        console.log("Can only send attachments while sending is in progress...");
+                    }
+                }
+                else
+                    console.log("No data provided for observation.");
+            }
+            else
+            {
+                console.log("Not online.")
+            }
+        },
+        addAttachmentData : function(att) {
+
         },
         drafts : {
             get : function(id) {
@@ -263,13 +600,9 @@ var app = {
 
                 if(obs != null)
                 {
-                    obs._ID = app.observation.getKey("PENDING");
-                    obs._STATUS = "waiting to send";
-                    app.observation.save(obs);
-                    app.observation.remove(deleteMe);
+                    app.observation.setStatus("W");
                     app.observation.startOver();
-                    app.notify("Your draft was queued for sending. You can still access it in your Outbox.");
-                    app.showPage("observation");
+                    app.showPage("sent-draft-confirmation");
                 }
             }
         },
@@ -277,7 +610,7 @@ var app = {
             get : function(id) {
                 return app.observation.get(id);
             },
-            list : function() {
+            list : function() {                
                 return app.observation.list("PENDING");
             },
             count : function() {
@@ -288,10 +621,7 @@ var app = {
                 var obs = app.observation.get(id);
                 if(obs != null)
                 {
-                    obs._ID = app.observation.getKey("DRAFT");
-                    obs._STATUS = "draft";
-                    app.observation.save(obs);
-                    app.observation.remove(id);
+                    app.observation.setStatus("D", obs);
                     app.observation.drafts.edit(obs._ID);
                     app.showPage("observation");
                 }
@@ -327,9 +657,46 @@ var app = {
                 self.categories.scatter();
                 self.photos.scatter();
                 self.videos.scatter();
+                self.geolocation.scatter();
             }
 
             this.setTitle();
+        },
+        geolocation : {
+            supported : function() {
+                return ("geolocation" in navigator);
+            },
+            getCurrent : function() {
+                var self = this;
+                if(this.supported())
+                {
+                    navigator.geolocation.getCurrentPosition(function (position) {
+                        app.observation.current.LocationLat = position.coords.latitude;
+                        app.observation.current.LocationLng = position.coords.longitude;
+                        app.observation.save();
+                        self.scatter();
+                        app.notify("Got your current location.");
+                    }, function(error) {
+                        app.notify(error.message + " (code " + error.code + ")");
+                    });
+                }
+            },
+            scatter : function() {
+                $("#location-page input[name='LocationLat']").val(app.observation.current.LocationLat);
+                $("#location-page input[name='LocationLng']").val(app.observation.current.LocationLng);
+                $("#location-page input[name='LocationDescription']").val(app.observation.current.LocationDescription);
+
+                if(app.observation.current.LocationLat != null && app.observation.current.LocationLng != null)
+                {
+                    $("#location-page .nonefound").html("" + app.observation.current.LocationLat + "," + app.observation.current.LocationLng);
+                }
+                else
+                {
+                    $("#location-page .nonefound").html("Location Unknown");
+                }
+
+                //TODO: probably make some changes to the page - i.e. show the lat/lng
+            }
         },
         categories : {
             scatter : function() {
@@ -412,7 +779,20 @@ var app = {
             {
                 this.current._CURRENTSTEP = id;
             }
-			$("#" + id).fadeIn();
+            var showme = $("#" + id);
+
+            //pages can control the navigation a little bit
+            if(showme.attr("show-next") == "false")
+                $(".next").hide();
+            else
+                $(".next").show();
+
+            if(showme.attr("show-previous") == "false")
+                $(".previous").hide();
+            else
+                $(".previous").show();
+
+			showme.fadeIn();
         },
         photos : {
             scatter : function() {
@@ -451,7 +831,9 @@ var app = {
                     
                     var att = {
                         Data: imgData,
-                        Caption: null
+                        Caption: null,
+                        Attribution : null,
+                        ContentType : "image/jpg"
                     }
     
                     current.Photos.push(att);
@@ -465,7 +847,21 @@ var app = {
             },
     
             remove : function(i) {
-                
+                //TODO: might want to cleanup the cache library...
+                var self = this;
+                if(app.observation.current.Photos.length > i)
+                {
+                    navigator.notification.confirm("Are you sure?", function(btn) {
+                        if(btn == 1)
+                        {
+                            app.observation.current.Photos.splice(i, 1);
+                            app.observation.save();
+                            self.scatter();
+                            app.notify("Deleted your photo.");
+                        }
+                    });
+
+                }
             }
         },
         videos : {
@@ -510,9 +906,110 @@ var app = {
                     app.notify(error.message);
                 }, {limit:1, duration: 30});
             },
+            choose : function() {
+                var self = this;
+                var current = app.observation.current;
+                var opts = {
+                    destinationType : Camera.DestinationType.FILE_URI,
+                    sourceType : Camera.PictureSourceType.SAVEDPHOTOALBUM,
+                    mediaType: Camera.MediaType.VIDEO,
+                    popoverOptions : null //IOS thing
+                };
+    
+                navigator.camera.getPicture(function(imgData) {
+                    
+                    var att = {
+                        Data: imgData,
+                        Caption: null
+                    }
+
+                    current.Videos.push(att);
+                    app.observation.save();
+
+                    self.scatter();
+                        
+                }, function(errorMsg) {
+                    app.notify(errorMsg);
+                }, opts);
+            },
     
             remove : function(i) {
-                
+                var self = this;
+                //TODO: might want to cleanup cached files
+                if(app.observation.current.Videos.length > i)
+                {
+                    navigator.notification.confirm("Are you sure?", function(btn) {
+                        if(btn == 1)
+                        {
+                            app.observation.current.Videos.splice(i, 1);
+                            app.observation.save();
+                            self.scatter();
+                            app.notify("Deleted your video.");
+                        }
+                    });
+
+                }
+            }
+        },
+        audio : {
+            scatter : function() {
+                var tmp = $("#audio-thumbnail-template").html();
+                $("#audio-page .thumbnails").html("");
+                var h = "";
+                var current = app.observation.current;
+                for(var i = 0; i < current.AudioRecordings.length; i++)
+                {
+                    current.AudioRecordings[i].Index = i; //needed for the template
+                    h += Mustache.render(tmp, current.AudioRecordings[i]);
+                }
+                $("#audio-page .thumbnails").html(h);
+            },
+            record : function() {
+                var self = this;
+                var current = app.observation.current;
+
+                navigator.device.capture.captureAudio(function(mediaFiles) {
+                    if(mediaFiles.length > 0)
+                    {
+                        mediaFiles[0].getFormatData(function(mediaFileData) {
+
+                            var att = {
+                                Data: mediaFiles[0].fullPath,
+                                Type : mediaFiles[0].type,
+                                Size : mediaFiles[0].size,
+                                Duration : mediaFileData.duration,
+                                Caption: null
+                            }
+    
+                            current.AudioRecordings.push(att);
+                            app.observation.save();
+        
+                            self.scatter();
+                        });
+
+                    }
+
+                }, function(error) {
+                    app.notify(error);
+                }, {limit:1});
+            },
+    
+            remove : function(i) {
+                var self = this;
+                //TODO: might want to cleanup cached files
+                if(app.observation.current.AudioRecordings.length > i)
+                {
+                    navigator.notification.confirm("Are you sure?", function(btn) {
+                        if(btn == 1)
+                        {
+                            app.observation.current.AudioRecordings.splice(i, 1);
+                            app.observation.save();
+                            self.scatter();
+                            app.notify("Deleted your recording.");
+                        }
+                    });
+
+                }
             }
         }
 
@@ -531,6 +1028,10 @@ var app = {
         {
             app.settings.scatter();
         } 
+        else if(id == "sign-in")
+        {
+            $el.find("[name=LoginName]").val(window.localStorage.getItem("LOGIN"));
+        }
         else if(id == "drafts")
         {
             var drafts = this.observation.drafts.list();
@@ -543,7 +1044,7 @@ var app = {
             }
             else
             {
-                $el.find(".ui-content").html("<h3 class='nonefound'>No drafts</h3>");
+                $el.find(".ui-content").html("<h3 class='nonefound'>No Drafts</h3>");
             }
         }
         else if(id == "outbox")
@@ -551,6 +1052,7 @@ var app = {
             var drafts = this.observation.outbox.list();
             if(drafts.length > 0)
             {
+
                 var template = $("#outbox-template").html();
                 h = Mustache.render(template, {drafts:drafts});
                 $el.find(".ui-content").html(h);
@@ -561,10 +1063,27 @@ var app = {
                 $el.find(".ui-content").html("<h3 class='nonefound'>Nothing in your Outbox</h3>");
             }
         }
+        else if(id == "sent")
+        {
+            var drafts = this.observation.sent.list();
+            if(drafts.length > 0)
+            {
+
+                var template = $("#sent-template").html();
+                h = Mustache.render(template, {drafts:drafts});
+                $el.find(".ui-content").html(h);
+                $el.find(".ui-content ul").listview();
+            }
+            else
+            {
+                $el.find(".ui-content").html("<h3 class='nonefound'>No Sent Observations</h3>");
+            }
+        }
         else if(id == "observation")
         {
         }
     },
+    
     getRemoteUrl : function(path) {
         //TODO: get the URL root from config file
         //return "https://www.leonetwork.org" + path;
@@ -589,12 +1108,17 @@ var app = {
         else
             return false;
     },
+    signedInAs : function() {
+        var storage = window.localStorage;
+        return storage.getItem("LOGIN");
+    },
     signIn : function() {
         app.showPage("sign-in");
     },
     signOut : function() {
         var storage = window.localStorage;
-        var token = storage.removeItem("TOKEN");  
+        storage.removeItem("TOKEN");  
+        app.notify("You have been signed out.");
         app.showPage("home");
     },
     postJson : function(url, data, callback) {
@@ -618,7 +1142,8 @@ var app = {
             {
                 var token = res.Token;
                 var storage = window.localStorage;
-                storage.setItem("TOKEN", token);    
+                storage.setItem("TOKEN", token);   
+                storage.setItem("LOGIN", email); 
                 app.showPage("home");        
                 app.notify("Signed in.");
             }

@@ -62,7 +62,8 @@
 			app.settings.scatter();
 			app.observation.initialize();
 
-			
+			app.latest.refresh();
+
 		}, false);
 
 		
@@ -70,13 +71,29 @@
 			//need to explicitly activate these since they are outside of a page
 			$("body>[data-role='panel']" ).panel( {beforeopen: function(ev, ui) {
 					//this is the chance to refresh the counts
+					//and other things on the panel
 					$(this).find(".ui-li-count").each(function() {
 						$(this).html(app.observation[$(this).attr("for")].count());
 					});
+
+					if(app.isSignedIn())
+					{
+						$("#sign-in-link").hide();
+						$("#sign-out-link").show();
+						$("#signed-in-as").show().html(app.signedInAs());
+					}
+					else
+					{
+						$("#sign-in-link").show();
+						$("#sign-out-link").hide();
+						$("#signed-in-as").hide();
+					}
+
 				}
 			});
 
 			$("body>[data-role='panel'] ul[data-role='listview']").listview();
+
 
 			//load up the categories
 			$.get("data/categories.json", null, function(res) {
@@ -147,6 +164,22 @@
 				margin-bottom: 20px;
 				text-align: center;
 			}
+
+			.footnote
+			{
+				text-align: center;
+				font-style: italic;
+				color:gray;
+			}
+
+			.status-badge {
+				color:white !important;
+				padding: 4px;
+				border-radius: 4px !important;
+				text-transform: uppercase;
+				font-size:x-small;
+				text-shadow: none !important;
+			}
 		</style>
     <title>LEO Field Reporter</title>
 </head>
@@ -171,7 +204,7 @@
 	<div class="photo-thumbnail" index="{{Index}}">
 		<img style="width:100%;" src="{{Data}}" />
 		<div><input type="text" placeholder="Caption" value="{{Caption}}"/></div>
-		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="app.observation.photos.remove({{Index}});"><i class="zmdi zmdi-delete"></i> Remove</a></div>
+		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="javascript:app.observation.photos.remove({{Index}});"><i class="zmdi zmdi-delete"></i> Remove</a></div>
 	</div>
 </script>
 
@@ -181,8 +214,51 @@
 				<source src="{{Data}}" type="{{Type}}">
 		</video>
 		<div><input type="text" placeholder="Caption" value="{{Caption}}"/></div>
-		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="app.observation.video.remove({{Index}});"><i class="zmdi zmdi-delete"></i> Remove</a></div>
+		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="javascript:app.observation.videos.remove({{Index}});"><i class="zmdi zmdi-delete"></i> Remove</a></div>
 	</div>
+</script>
+
+<script id="audio-thumbnail-template" type="template/mustache">
+	<div class="audio-thumbnail" index="{{Index}}">
+		<audio controls>
+			<source src="{{Data}}" type="{{Type}}">
+		</audio>
+		<div><input type="text" placeholder="Caption" value="{{Caption}}"/></div>
+		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="javascript:app.observation.audio.remove({{Index}});"><i class="zmdi zmdi-delete"></i> Remove</a></div>
+	</div>
+</script>
+
+<script id="post-card" type="template/mustache">
+
+	<div class="nd2-card card-media-right card-media-small">
+
+			<div class="card-media">
+				<img src="{{Thumbnail}}">
+			</div>
+
+			<div class="card-title has-supporting-text">
+				<h3 class="card-primary-title" style="white-space:initial;overflow:auto;text-overflow:initial;">{{ObservationTitle}}</h3>
+				<h5 class="card-subtitle">{{LocationDescription}}</h5>
+			</div>
+
+
+			<div class="card-supporting-text has-action has-title">
+				<b>{{ObservationDateFriendly}}</b> {{ObservationSummary}}
+			</div>
+
+			<div class="card-action">
+				<div class="row between-xs">
+					<div class="col-xs-12 align-right">
+						<div class="box">
+							<a href="#" onclick="window.open('https://www.leonetwork.org/posts/show/{{ObservationID}}', '_system');return false;" class="ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button">Read More</a>
+						</div>
+					</div>
+				</div>
+			</div>
+
+		</div>
+
+
 </script>
 
 <script id="drafts-template" type="template/mustache">
@@ -192,7 +268,7 @@
 				<a href="javascript:app.showPage('observation');app.observation.drafts.edit('{{_ID}}');">
 					<h2>{{ObservationTitle}}{{^ObservationTitle}}Untitled Observation{{/ObservationTitle}}</h2>
 					<p>Updated {{_UPDATED}}</p>
-					<span class="ui-li-count">{{_STATUS}}</span>
+					<span class="ui-li-count status-badge" style="background-color:{{Status.color}};">{{Status.name}}</span>
 				</a>
 			</li>
 		{{/drafts}}
@@ -206,8 +282,20 @@
 				<a href="javascript:app.observation.outbox.edit('{{_ID}}');">
 					<h2>{{ObservationTitle}}{{^ObservationTitle}}Untitled Observation{{/ObservationTitle}}</h2>
 					<p>Updated {{_UPDATED}}</p>
-					<span class="ui-li-count">{{_STATUS}}</span>
+					<span class="ui-li-count status-badge" style="background-color:{{Status.color}};">{{Status.name}}</span>
 				</a>
+			</li>
+		{{/drafts}}
+	</ul>
+</script>
+
+<script id="sent-template" type="template/mustache">
+	<ul>
+		{{#drafts}}
+			<li>
+				<h2>{{ObservationTitle}}{{^ObservationTitle}}Untitled Observation{{/ObservationTitle}}</h2>
+				<p>Sent {{_SENT}}</p>
+				<p><a href="https://www.leonetwork.org/posts/show/{{ObservationID}}">View on LEO Network <i class="zmdi zmdi-open-in-new"></i></a><p>
 			</li>
 		{{/drafts}}
 	</ul>
@@ -222,10 +310,15 @@
 		<nd2-include data-src="header.html"></nd2-include>
 	
 		<div role="main" class="ui-content">
-			<p>home page</p>
+			<div>
+				Visit <a href="#" onclick="window.open('https://www.leonetwork.org', '_system');return false;" >leonetwork.org <i class="zmdi zmdi-open-in-new"></i></a> for thousands of observations of environmental change. Some recent observations appear below. 
+			</div>
+			
+			<div id="latest"></div>
+
 		</div>
 	
-	</div><!-- /page -->
+	</div>
 
 	<script>
 		
@@ -243,14 +336,16 @@
 		<div role="main" class="ui-content">
 			<div id="current-observation-title" style="color:gray;"></div>
 
-			<div id="continue-page" class="observation-page" style="display:none;">
+			<div id="continue-page" class="observation-page" style="display:none;" show-next="false" show-previous="false">
 				<h3>You have an unsaved draft. Do you want to continue editing it?</h3>
 
+				<br>
 				<div>
 					<button type="button" onclick="app.observation.continueEditing();" class="ui-btn ui-btn-icon-right clr-btn-green" >
 						Continue Editing
 						<i class="zmdi zmdi-chevron-right"></i>
 					</button>
+					<br><br>
 					<button type="button" onclick="app.observation.startOver();" class="ui-btn  ui-btn-icon-left " >
 						<i class="zmdi zmdi-refresh"></i>
 						Start Over
@@ -258,33 +353,37 @@
 				</div>
 			</div>
 
-			<div id="headline-page" class="observation-page">
+			<div id="headline-page" class="observation-page" show-previous="false">
 				<h3>What's your headline?</h3>
 				<h5>This will be the title of your post</h5>
 				<input type="text" name="ObservationTitle" id="ObservationTitle" value="" />
 
-				<div>
-					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
-						Next
-						<i class="zmdi zmdi-chevron-right"></i>
-					</button>
-				</div>
 			</div>
 
 			<div id="date-page" class="observation-page" style="display: none;">
 				<h3>When did you make your observation?</h3>
 				<input type="date" name="ObservationDate" id="ObservationDate" value="" />
 
-				<div>
-					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
-						Next
-						<i class="zmdi zmdi-chevron-right"></i>
-					</button>
+				
+			</div>
 
-					<button type="button" onclick="app.observation.previous();" class="ui-btn  ui-btn-icon-left" >
-							<i class="zmdi zmdi-chevron-left"></i>
-						Previous</button>
-				</div>
+			<div id="location-page" class="observation-page" style="display: none;">
+				<h3>Where did you make your observation?</h3>
+
+				<input type="hidden" name="LocationLat" />
+				<input type="hidden" name="LocationLng" />
+
+				<h3 class="nonefound"></h3>
+
+				<button type="button" onclick="app.observation.geolocation.getCurrent();" class="ui-btn  clr-btn-blue ui-btn-icon-left" >
+						<i class="zmdi zmdi-my-location"></i>
+
+					Get Current Location
+				</button>
+
+				<input type="text" name="LocationDescription" />
+
+				
 			</div>
 
 			<div id="text-page" class="observation-page" style="display: none;">
@@ -292,16 +391,7 @@
 				<h5>Why is it unusual or significant?</h5>
 				<textarea rows="10" style="min-height: 100px;" name="ObservationText" id="ObservationText"></textarea>
 
-				<div>
-					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
-						Next
-						<i class="zmdi zmdi-chevron-right"></i>
-					</button>
-
-					<button type="button" onclick="app.observation.previous();" class="ui-btn  ui-btn-icon-left" >
-							<i class="zmdi zmdi-chevron-left"></i>
-						Previous</button>
-				</div>
+				
 			</div>
 
 			<div id="photos-page" class="observation-page" style="display: none;">
@@ -312,20 +402,13 @@
 					</div>
 
 					<div>
+						<br>
 						<button type="button" onclick="app.observation.photos.add(Camera.PictureSourceType.CAMERA);" class="ui-btn ui-btn-icon-left clr-btn-purple"><i class="zmdi zmdi-camera-add"></i> Take Photo</button>
+						<br>
 						<button type="button" onclick="app.observation.photos.add(Camera.PictureSourceType.SAVEDPHOTOALBUM);" class="ui-btn ui-btn-icon-left clr-btn-blue"><i class="zmdi zmdi-collection-image"></i> Choose Photo</button>
 					</div>
 
-				<div>
-					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
-						Next
-						<i class="zmdi zmdi-chevron-right"></i>
-					</button>
-
-					<button type="button" onclick="app.observation.previous();" class="ui-btn  ui-btn-icon-left" >
-							<i class="zmdi zmdi-chevron-left"></i>
-						Previous</button>
-				</div>
+				
 			</div>
 
 			<div id="videos-page" class="observation-page" style="display: none;">
@@ -336,24 +419,31 @@
 					</div>
 
 					<div>
+						<br>
 						<button type="button" onclick="app.observation.videos.record();" class="ui-btn ui-btn-icon-left clr-btn-purple"><i class="zmdi zmdi-videocam"></i> Record Video</button>
+						<br>
 						<button type="button" onclick="app.observation.videos.choose();" class="ui-btn ui-btn-icon-left clr-btn-blue"><i class="zmdi zmdi-collection-video"></i> Choose Video</button>
 					</div>
 
-				<div>
-					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
-						Next
-						<i class="zmdi zmdi-chevron-right"></i>
-					</button>
-
-					<button type="button" onclick="app.observation.previous();" class="ui-btn  ui-btn-icon-left" >
-							<i class="zmdi zmdi-chevron-left"></i>
-						Previous</button>
-				</div>
+				
 			</div>
 
-			<div id="categories-page" class="observation-page" style="display: none;">
-				<h5>Please help us categorize your observation</h5>
+			<div id="audio-page" class="observation-page" style="display: none;">
+					<h3>You may also record short audio clips</label>
+	
+						<div class="thumbnails">
+	
+						</div>
+	
+						<div>
+							<br>
+							<button type="button" onclick="app.observation.audio.record();" class="ui-btn ui-btn-icon-left clr-btn-purple"><i class="zmdi zmdi-voicemail"></i> Record Audio</button>
+						</div>
+	
+					
+				</div>
+
+			<div id="categories-page-NATURAL" class="observation-page" style="display: none;">
 				
 				<h3>Natural Environment</h3>
 				<p>What aspects of the natural environment are relevant to this post? Choose all that apply.</p>
@@ -361,54 +451,53 @@
 
 				<div id="categories_NATURAL"></div>
 				
+			</div>
+
+			<div id="categories-page-EVENT" class="observation-page" style="display: none;">
+				
 
 				<h3>Unusual or Unexpected Event</h3>
 				<p>Why is this post unusual or unexpected? What about this event deviates from the norm?</p>
 
 				<div id="categories_EVENT"></div>
 
+				
+			</div>
+
+			<div id="categories-page-HUMAN" class="observation-page" style="display: none;">				
+
 				<h3>Impact on Human Environment</h3>
 				<p>How has the human environment been impacted by the event described in this post?</p>
 
 				<div id="categories_HUMAN"></div>
-
-				<div>
-					<button type="button" onclick="app.observation.next();" class="ui-btn  clr-btn-green ui-btn-icon-right" >
-						Next
-						<i class="zmdi zmdi-chevron-right"></i>
-					</button>
-
-					<button type="button" onclick="app.observation.previous();" class="ui-btn  ui-btn-icon-left" >
-							<i class="zmdi zmdi-chevron-left"></i>
-						Previous</button>
-				</div>
+				
 			</div>
 
-			<div id="finished-page" class="observation-page" style="display: none;">
-				<h3>Finish Your Observation</h3>
+			<div id="almost-finished-page" class="observation-page" style="display: none;" show-next="false">
+				<h3>Almost Finished</h3>
 
 				<div>
-						<button type="button" onclick="app.observation.saveAsDraft();" class="ui-btn  clr-btn-green ui-btn-icon-left" >
+						<button type="button" onclick="app.observation.saveAsDraft();" class="ui-btn  clr-btn-blue ui-btn-icon-left" >
 							<i class="zmdi zmdi-save"></i>
 							Save as Draft
 						</button>
-						<br>
+						<div class="footnote">You'll be able to continue editing your observation later.</div>
+						<br><br>
 						<button type="button" onclick="app.observation.drafts.send();" class="ui-btn  clr-btn-green ui-btn-icon-left" >
 							<i class="zmdi zmdi-mail-send"></i>
 							Send Now
 						</button>
-						<br>
-						<button type="button" onclick="app.observation.previous();" class="ui-btn  ui-btn-icon-left" >
-							<i class="zmdi zmdi-chevron-left"></i>
-						Previous</button>
-						<br>
-						<button type="button" onclick="app.observation.abandon();" class="ui-btn  ui-btn-icon-left" >
+						<div  class="footnote">Your observation will be submitted to the LEO Network.</div>
+						<br><br>
+						<button type="button" onclick="app.observation.abandon();" class="ui-btn clr-btn-red  ui-btn-icon-left" >
 							<i class="zmdi zmdi-delete"></i>
-						Delete Observation</button>
+						Delete &amp; Start Over</button>
+						<div  class="footnote">Your draft will be deleted and you'll be able to start a new one.</div>
 
 					</div>
 			</div>
 
+			<!--these options are available via the ... menu while editing-->
 			<div data-role="panel" id="editingoptions" class="ui-bottom-sheet ui-bottom-sheet-list" data-animate="false" data-position='bottom' data-display="overlay">
 				<div class='row around-xs'>
 					<div class='col-xs-auto'>
@@ -418,13 +507,37 @@
 						<a href='javascript:app.observation.deleteDraft();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><i class='zmdi zmdi-delete zmd-2x'></i><strong>Delete Draft</strong></a>
 					</div>
 					<div class='col-xs-auto'>
-							<a href='javascript:app.observation.dumpToConsole();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><strong>Dump to Console</strong></a>
-						</div>
+						<a href='javascript:app.observation.dumpToConsole();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><strong>Debug</strong></a>
+					</div>
+					<div class='col-xs-auto'>
+						<a href="javascript:app.observation.send(app.observation.current._ID);" class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><strong>Send Now</strong></a>
+					</div>
 				</div>
 			</div>
 
 		</div>
 	
+		<!--persistent navigation while editing-->
+		<div data-role="footer" data-position="fixed" data-tap-toggle="false">
+			<div class="row center-xs">
+				<div class="col-xs-4 previous">
+					<div class="box">
+						<a href="javascript:app.observation.show('headline-page');" class="ui-btn"><i class='zmdi zmdi-chevron-left'></i><i class='zmdi zmdi-chevron-left'></i> start</a>
+					</div>
+				</div>
+				<div class="col-xs-4 previous">
+					<div class="box">
+						<a href="javascript:app.observation.previous();" class="ui-btn "><i class='zmdi zmdi-chevron-left'></i> previous</a>
+					</div>
+				</div>
+				<div class="col-xs-4 next">
+					<div class="box clr-bg-green">
+						<a href="#" onclick="app.observation.next();" class="ui-btn clr-btn-green">next <i class='zmdi zmdi-chevron-right'></i></a>
+					</div>
+				</div>
+			</div>
+	
+		</div>
 		
 	</div>
 
@@ -437,7 +550,79 @@
 	
 	</div>
 
+	<div data-role="page" id="saved-draft-confirmation">
+
+		<nd2-include data-src="header.html"></nd2-include>
+	
+		<div role="main" class="ui-content">
+			<h3 class="nonefound">Saved your draft</h3>
+
+			<br>
+
+			<button type="button" onclick="app.observation.show('headline-page');app.showPage('observation');" class="ui-btn  clr-btn-purple ui-btn-icon-left" >
+				<i class="zmdi zmdi-edit"></i>
+				Continue Editing
+			</button>
+			<br>
+			<button type="button" onclick="app.showPage('drafts');" class="ui-btn  clr-btn-blue ui-btn-icon-left" >
+				<i class="zmdi zmdi-folder"></i>
+				Go to Drafts Folder
+			</button>
+			<br>
+			<button type="button" onclick="app.observation.startOver();app.showPage('observation');" class="ui-btn  clr-btn-green ui-btn-icon-left" >
+				<i class="zmdi zmdi-eye"></i>
+				Start new Observation
+			</button>
+		</div>
+	
+	</div>
+
+	<div data-role="page" id="sent-draft-confirmation">
+
+		<nd2-include data-src="header.html"></nd2-include>
+	
+		<div role="main" class="ui-content">
+			<h3 class="nonefound">Your observation will be sent to the LEO Network</h3>
+
+			<br>
+
+			<button type="button" onclick="app.showPage('outbox');" class="ui-btn  clr-btn-blue ui-btn-icon-left" >
+				<i class="zmdi zmdi-folder"></i>
+				Go to Your Outbox
+			</button>
+			<br>
+			<button type="button" onclick="app.observation.startOver();app.showPage('observation');" class="ui-btn  clr-btn-green ui-btn-icon-left" >
+				<i class="zmdi zmdi-eye"></i>
+				Start new Observation
+			</button>
+		</div>
+	
+	</div>
+
 	<div data-role="page" id="outbox">
+
+		<!--custom header for this page only-->
+		<div data-role="header" data-position="fixed" class="wow fadeIn" data-tap-toggle="false">
+			<a href="#outboxoptions"  class="ui-btn ui-btn-right wow fadeIn" data-wow-delay='1.2s'><i class="zmdi zmdi-more-vert"></i></a>
+			<a href="#leftpanel" class="ui-btn ui-btn-left wow fadeIn" data-wow-delay='0.8s'><i class="zmdi zmdi-menu"></i></a>
+			<h1 class="wow fadeIn" data-wow-delay='0.4s'><img src="img/logo.png" style="max-width:30px;vertical-align: middle;" /> Field Reporter</h1>
+		</div>
+	
+		<div role="main" class="ui-content">
+		</div>
+
+		<!--these options are available via the ... menu while in the outbox-->
+		<div data-role="panel" id="outboxoptions" class="ui-bottom-sheet ui-bottom-sheet-list" data-animate="false" data-position='bottom' data-display="overlay">
+			<div class='row around-xs'>
+				<div class='col-xs-auto'>
+					<a href='javascript:app.observation.sendNext();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><i class='zmdi zmdi-mail-send zmd-2x'></i><strong>Send Now</strong></a>
+				</div>
+			</div>
+		</div>
+	
+	</div>
+
+	<div data-role="page" id="sent">
 
 		<nd2-include data-src="header.html"></nd2-include>
 	
@@ -459,7 +644,7 @@
 				<label for="password">Password</label>
 				<input type="password" name="Password" value="" >
 
-				<button class="ui-btn  clr-btn-green" onclick="app.doSignIn();">Sign In</button>
+				<button class="ui-btn clr-btn-green" onclick="app.doSignIn();">Sign In</button>
 			</div>
 		
 		</div>
@@ -482,7 +667,7 @@
 			<input type="url" name="RootUrl" value="">
 
 			<div>
-				<button onclick="app.settings.gather();app.notify('Saved settings.');" class="ui-btn">Save Settings</button>
+				<button onclick="app.settings.gather();app.notify('Saved settings.');" class="ui-btn clr-btn-green">Save Settings</button>
 			</div>
 
 		</div>
@@ -527,6 +712,10 @@
 				<li><a href="javascript:app.showPage('about');">About</a></li>
 				<li><a href="javascript:app.showPage('settings');">Settings</a></li>
 			</ul>
+			<br/>
+			<div id="signed-in-as" style="text-align: center;color:silver;font-style:italic;"></div>
+			<button type="button" onclick="app.signIn();" id="sign-in-link" class="ui-btn clr-btn-blue">Sign In</button>
+			<button type="button" onclick="app.signOut();" id="sign-out-link" class="ui-btn clr-btn-gray">Sign Out</button>
 
 	</div>
 </body>
