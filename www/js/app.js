@@ -699,6 +699,79 @@ var app = {
             }
         },
         categories : {
+            saveToCache : function(categories) {
+                if(categories != null)
+                    window.localStorage.setItem("CAEGORIES", JSON.stringify(categories));
+            },
+            getFromCache : function(callback) {
+                var c = window.localStorage.getItem("CATEGORIES");
+                if(c != null)
+                {
+                    if(callback)
+                        callback(JSON.parse(c));
+                }
+                else
+                {
+                    //if not already in cache,
+                    //get from bundle, store in cache, and call callback
+                    var self = this;
+                    this.getFromBundle(function(data) {
+                        self.saveToCache(data);
+                        if(callback)
+                            callback(data);
+                    })
+                }
+            },
+            getFromServer : function(callback) {
+                var self = this;
+                if(navigator.connection.type == Connection.NONE)
+                {
+                    self.getFromCache(callback);
+                }
+                else
+                {
+                    $.get(app.getRemoteUrl("/en/categories/json"), null, function(res) {
+                        self.saveToCache(res);
+                        if(callback)    
+                            callback(res);
+                    }, "json");
+                }
+    
+            },
+            getFromBundle : function(callback) {
+                $.get("data/categories.json", null, function(res) {
+                    if(callback)    
+                        callback(res);
+                }, "json");
+            },
+            refresh : function() {
+                this.getFromServer(function(res) {
+                    var template = $("#category-block-template").html();
+                    Mustache.parse(template);
+
+                    var groups = {
+                        NATURAL:[],
+                        HUMAN:[],
+                        EVENT:[]
+                    }
+                    for (var i = 0; i < res.length; i++) {
+                        if(res[i].GroupID && res[i].GroupID != null)
+                        {
+                            var h = Mustache.render(template, res[i]);
+                            groups[res[i].GroupID].push(h);
+                        }
+                    };
+
+                    $("#categories_NATURAL").html(groups.NATURAL.join(""));
+                    $("#categories_EVENT").html(groups.EVENT.join(""));
+                    $("#categories_HUMAN").html(groups.HUMAN.join(""));
+
+                    for (var i = 0; i < res.length; i++) {
+                        //this is important for getting it to scale properly
+                        $("#categoryblock-" + res[i].CategoryID).find("svg").attr("width", "60").attr("height", "60");
+                    };
+                });
+            },
             scatter : function() {
                 var current = app.observation.current;
 
@@ -721,7 +794,6 @@ var app = {
                     if($(this).hasClass("selected"))
                         app.observation.current.Categories.push($(this).attr("category"));
                 });
-
             }
         },        
         deleteDraft : function() {

@@ -64,6 +64,9 @@
 
 			app.latest.refresh();
 
+			app.observation.categories.refresh();
+
+
 		}, false);
 
 		
@@ -95,34 +98,34 @@
 			$("body>[data-role='panel'] ul[data-role='listview']").listview();
 
 
-			//load up the categories
-			$.get("data/categories.json", null, function(res) {
-				observing.categories = res;
-				var template = $("#category-block-template").html();
-				Mustache.parse(template);
 
-				var groups = {
-					NATURAL:[],
-					HUMAN:[],
-					EVENT:[]
-				}
-				for (var i = 0; i < res.length; i++) {
-					if(res[i].GroupID && res[i].GroupID != null)
-					{
-						var h = Mustache.render(template, res[i]);
-						groups[res[i].GroupID].push(h);
-					}
-				};
+			// $.get("data/categories.json", null, function(res) {
+			// 	observing.categories = res;
+			// 	var template = $("#category-block-template").html();
+			// 	Mustache.parse(template);
 
-				$("#categories_NATURAL").html(groups.NATURAL.join(""));
-				$("#categories_EVENT").html(groups.EVENT.join(""));
-				$("#categories_HUMAN").html(groups.HUMAN.join(""));
+			// 	var groups = {
+			// 		NATURAL:[],
+			// 		HUMAN:[],
+			// 		EVENT:[]
+			// 	}
+			// 	for (var i = 0; i < res.length; i++) {
+			// 		if(res[i].GroupID && res[i].GroupID != null)
+			// 		{
+			// 			var h = Mustache.render(template, res[i]);
+			// 			groups[res[i].GroupID].push(h);
+			// 		}
+			// 	};
 
-				for (var i = 0; i < res.length; i++) {
-					//this is important for getting it to scale properly
-					$("#categoryblock-" + res[i].CategoryID).find("svg").attr("width", "60").attr("height", "60");
-				};
-			}, "json");
+			// 	$("#categories_NATURAL").html(groups.NATURAL.join(""));
+			// 	$("#categories_EVENT").html(groups.EVENT.join(""));
+			// 	$("#categories_HUMAN").html(groups.HUMAN.join(""));
+
+			// 	for (var i = 0; i < res.length; i++) {
+			// 		//this is important for getting it to scale properly
+			// 		$("#categoryblock-" + res[i].CategoryID).find("svg").attr("width", "60").attr("height", "60");
+			// 	};
+			// }, "json");
 		})
 
 		</script>
@@ -428,20 +431,21 @@
 				
 			</div>
 
-			<div id="audio-page" class="observation-page" style="display: none;">
+			<!--
+				<div id="audio-page" class="observation-page" style="display: none;">
 					<h3>You may also record short audio clips</label>
-	
-						<div class="thumbnails">
-	
-						</div>
-	
-						<div>
-							<br>
-							<button type="button" onclick="app.observation.audio.record();" class="ui-btn ui-btn-icon-left clr-btn-purple"><i class="zmdi zmdi-voicemail"></i> Record Audio</button>
-						</div>
-	
-					
+
+					<div class="thumbnails">
+
+					</div>
+
+					<div>
+						<br>
+						<button type="button" onclick="app.observation.audio.record();" class="ui-btn ui-btn-icon-left clr-btn-purple"><i class="zmdi zmdi-voicemail"></i> Record Audio</button>
+					</div>
 				</div>
+			-->
+
 
 			<div id="categories-page-NATURAL" class="observation-page" style="display: none;">
 				
