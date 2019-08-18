@@ -64,50 +64,82 @@ var app = {
                     callback(res);
             }, "json");
         },
+        scatter : function(res) {
+            if(res != null && res.length > 0)
+            {
+                var tmp = $("#post-card").html();
+                var h = "";
+                for(var i = 0; i < res.length; i++)
+                {
+                    var d = app.dateTimeReviver(null, res[i].ObservationDate);
+                    res[i].ObservationDateFriendly = moment(d).format("MMM Do, YYYY");
+                    h += Mustache.render(tmp, res[i]);
+                }
+                $("#latest").html(h);
+            }
+            else
+            {
+                $("#latest").html("<h3 class='nonefound'>Unable to get latest posts from the LEO Network.</h3>");
+            }
+        },
         refresh : function() {
-            this.getFromServer(function(res) {
-                if(res != null && res.length > 0)
-                {
-                    var tmp = $("#post-card").html();
-                    var h = "";
-                    for(var i = 0; i < res.length; i++)
-                    {
-                        var d = app.dateTimeReviver(null, res[i].ObservationDate);
-                        res[i].ObservationDateFriendly = moment(d).format("MMM Do, YYYY");
-                        h += Mustache.render(tmp, res[i]);
-                    }
-                    $("#latest").html(h);
-                }
-                else
-                {
-                    $("#latest").html("<h3 class='nonefound'>Unable to get latest posts from the LEO Network.</h3>");
-                }
+            this.getFromCache(function(res) {
+                //immediately load from cache/bundle
+                console.log("showing latest from the cache/bundle");
+                app.latest.scatter(res);
+
+                //once that's done, try loading from server
+                app.latest.getFromServer(function(res) {
+                    //this saves to cache internally
+                    console.log("showing latest from the server");
+                    app.latest.scatter(res);
+                });
             });
+
+            
         }
     },
 
     resources : {
         _resources : null,
-        _innerLoad : function(res) {
-            this._resources = {};
-            for(var i = 0; i < res.length; i++)
+        get : function(token, culture) {
+            if(!culture || culture == null)
+                culture = app.settings.get("Language", "en");
+            if(this._resources != null)
             {
-                if(!this._resources.hasOwnProperty(res[i].Culture))
+                if(this._resources.hasOwnProperty(culture))
                 {
-                    this._resources[res[i].Culture] = {};
-                }
-
-                if(!this._resources[res[i].Culture].hasOwnProperty(res[i].Name))
-                {
-                    this._resources[res[i].Culture][res[i].Name] = res[i].EffectiveValue;
+                    if(this._resources[culture].hasOwnProperty(token))
+                        return this._resources[culture][token];
                 }
             }
+
+            return this._defaultValue(token);
+        },
+        _defaultValue : function(token) {
+            if(token && token != null)
+            {
+                var parts = token.split(".");
+                var t = token;
+                if(parts.length > 1)
+                    t = parts[1]; //second half
+
+                var re = /([A-Z]+[a-z]+)/g;
+                t = t.replace(re, " $1");
+                return t.trim();
+            }
+            else
+                return "";
         },
         load : function() {
             var self = this;
+            console.log("loaded resources from cache/bundle");
             this.getFromCache(function(res) {
-                self._innerLoad(res);
-                //TODO: if connected, try to refresh it from the server
+                self._resources = res;
+                self.getFromServer(function(rr) {
+                    console.log("refreshed resources from server");
+                    self._resources = rr;
+                });
             });
         },
         saveToCache : function(res) {
@@ -135,13 +167,9 @@ var app = {
         },
         getFromServer : function(callback) {
             var self = this;
-            if(navigator.connection.type == Connection.NONE)
+            if(navigator.connection.type != Connection.NONE)
             {
-                self.getFromCache(callback);
-            }
-            else
-            {
-                $.get(app.getRemoteUrl("/en/resources/json"), null, function(res) {
+                $.get(app.getRemoteUrl("/en/fieldreporter/resourcestrings"), null, function(res) {
                     self.saveToCache(res);
                     if(callback)    
                         callback(res);
@@ -772,7 +800,7 @@ var app = {
         categories : {
             saveToCache : function(categories) {
                 if(categories != null)
-                    window.localStorage.setItem("CAEGORIES", JSON.stringify(categories));
+                    window.localStorage.setItem("CATEGORIES", JSON.stringify(categories));
             },
             getFromCache : function(callback) {
                 var c = window.localStorage.getItem("CATEGORIES");
@@ -795,19 +823,15 @@ var app = {
             },
             getFromServer : function(callback) {
                 var self = this;
-                if(navigator.connection.type == Connection.NONE)
+                if(navigator.connection.type != Connection.NONE)
                 {
-                    self.getFromCache(callback);
-                }
-                else
-                {
-                    $.get(app.getRemoteUrl("/en/categories/json"), null, function(res) {
+                    console.log("got categories from server");
+                    $.get(app.getRemoteUrl("/en/fieldreporter/categories"), null, function(res) {
                         self.saveToCache(res);
                         if(callback)    
                             callback(res);
                     }, "json");
-                }
-    
+                }    
             },
             getFromBundle : function(callback) {
                 $.get("data/categories.json", null, function(res) {
@@ -816,32 +840,40 @@ var app = {
                 }, "json");
             },
             refresh : function() {
-                this.getFromServer(function(res) {
-                    var template = $("#category-block-template").html();
-                    Mustache.parse(template);
-
-                    var groups = {
-                        NATURAL:[],
-                        HUMAN:[],
-                        EVENT:[]
-                    }
-                    for (var i = 0; i < res.length; i++) {
-                        if(res[i].GroupID && res[i].GroupID != null)
-                        {
-                            var h = Mustache.render(template, res[i]);
-                            groups[res[i].GroupID].push(h);
-                        }
-                    };
-
-                    $("#categories_NATURAL").html(groups.NATURAL.join(""));
-                    $("#categories_EVENT").html(groups.EVENT.join(""));
-                    $("#categories_HUMAN").html(groups.HUMAN.join(""));
-
-                    for (var i = 0; i < res.length; i++) {
-                        //this is important for getting it to scale properly
-                        $("#categoryblock-" + res[i].CategoryID).find("svg").attr("width", "60").attr("height", "60");
-                    };
+                var self = this;
+                this.getFromCache(function(res) {
+                    self.setup(res);
+                    self.getFromServer(function(res) {
+                        self.saveToCache(res);
+                        self.setup(res);
+                    });
                 });
+            },
+            setup : function(res) {
+                var template = $("#category-block-template").html();
+                Mustache.parse(template);
+
+                var groups = {
+                    NATURAL:[],
+                    HUMAN:[],
+                    EVENT:[]
+                }
+                for (var i = 0; i < res.length; i++) {
+                    if(res[i].GroupID && res[i].GroupID != null)
+                    {
+                        var h = Mustache.render(template, res[i]);
+                        groups[res[i].GroupID].push(h);
+                    }
+                };
+
+                $("#categories_NATURAL").html(groups.NATURAL.join(""));
+                $("#categories_EVENT").html(groups.EVENT.join(""));
+                $("#categories_HUMAN").html(groups.HUMAN.join(""));
+
+                for (var i = 0; i < res.length; i++) {
+                    //this is important for getting it to scale properly
+                    $("#categoryblock-" + res[i].CategoryID).find("svg").attr("width", "60").attr("height", "60");
+                };
             },
             scatter : function() {
                 var current = app.observation.current;
