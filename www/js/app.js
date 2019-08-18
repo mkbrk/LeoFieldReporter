@@ -86,6 +86,77 @@ var app = {
         }
     },
 
+    resources : {
+        _resources : null,
+        _innerLoad : function(res) {
+            this._resources = {};
+            for(var i = 0; i < res.length; i++)
+            {
+                if(!this._resources.hasOwnProperty(res[i].Culture))
+                {
+                    this._resources[res[i].Culture] = {};
+                }
+
+                if(!this._resources[res[i].Culture].hasOwnProperty(res[i].Name))
+                {
+                    this._resources[res[i].Culture][res[i].Name] = res[i].EffectiveValue;
+                }
+            }
+        },
+        load : function() {
+            var self = this;
+            this.getFromCache(function(res) {
+                self._innerLoad(res);
+                //TODO: if connected, try to refresh it from the server
+            });
+        },
+        saveToCache : function(res) {
+            if(res != null)
+                window.localStorage.setItem("RESOURCES", JSON.stringify(res));
+        },
+        getFromCache : function(callback) {
+            var c = window.localStorage.getItem("RESOURCES");
+            if(c != null)
+            {
+                if(callback)
+                    callback(JSON.parse(c));
+            }
+            else
+            {
+                //if not already in cache,
+                //get from bundle, store in cache, and call callback
+                var self = this;
+                this.getFromBundle(function(data) {
+                    self.saveToCache(data);
+                    if(callback)
+                        callback(data);
+                })
+            }
+        },
+        getFromServer : function(callback) {
+            var self = this;
+            if(navigator.connection.type == Connection.NONE)
+            {
+                self.getFromCache(callback);
+            }
+            else
+            {
+                $.get(app.getRemoteUrl("/en/resources/json"), null, function(res) {
+                    self.saveToCache(res);
+                    if(callback)    
+                        callback(res);
+                }, "json");
+            }
+
+        },
+        getFromBundle : function(callback) {
+            $.get("data/resources.json", null, function(res) {
+                if(callback)    
+                    callback(res);
+            }, "json");
+        }
+    },
+
     //this should be useful on other apps
     settings : {
         _values : {
