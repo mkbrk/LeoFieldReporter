@@ -102,7 +102,45 @@ var app = {
 
     resources : {
         _resources : null,
+        _re : /@([A-Z][a-zA-Z]*\.[A-Z][A-Za-z]+)/g,
+        //expects text like @Button.Cancel
+        replace : function(text, culture) {
+            if(text && text.length > 0)
+            {
+                return text.replace(app.resources._re, function(x) {
+                    return app.resources.get(x, culture); // app.resources.get(match);
+                });
+            }   
+            else
+                return text;         
+        },
+        //el is an HTML node 
+        //this does token replacements all the way down the tree
+        replaceAll : function(el, culture) {
+            var allTextNodes = this._getTextNodes(el);
+            for(var i = 0; i < allTextNodes.length; i++)
+            {
+                allTextNodes[i].textContent = app.resources.replace(allTextNodes[i].textContent, culture);
+            }
+        },
+        _getTextNodes : function(node) {
+            var textNodes  = [];
+            if (node.nodeType == 3) {
+                textNodes.push(node);
+            } else {
+                for (var i = 0, len = node.childNodes.length; i < len; ++i) {
+                     var t = app.resources._getTextNodes(node.childNodes[i]);
+                     for(var tt = 0 ; tt < t.length; tt++)
+                        textNodes.push(t[tt]);
+                }
+            }
+            return textNodes;
+        },
+        //expects an individual token 
         get : function(token, culture) {
+            if(token.indexOf("@") == 0)
+                token = token.replace("@","");
+
             if(!culture || culture == null)
                 culture = app.settings.get("Language", "en");
             if(this._resources != null)

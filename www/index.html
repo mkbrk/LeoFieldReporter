@@ -674,6 +674,11 @@
 				<button onclick="app.settings.gather();app.notify('Saved settings.');" class="ui-btn clr-btn-green">Save Settings</button>
 			</div>
 
+			<hr>
+			<div>
+				<button onclick="location.reload();" class="ui-btn clr-btn-orange">Reload</button>
+			</div>
+
 		</div>
 	
 	</div>
@@ -700,26 +705,26 @@
 	<div data-role="panel" id="leftpanel" data-display="overlay" data-position-fixed="true" data-theme="a" >
 			<div style="text-align:center;">
 				<a href="javascript:app.showPage('home');"><img src="img/logo.png" /></a>
-				<h3>Local Environmental Observer Network</h3>
+				<h3>@Heading.LocalEnvironmentalObserverNetwork</h3>
 			</div>
 			
 			<hr/>
 
 			<ul data-role="listview" data-icon="false">
-				<li><a href="javascript:app.showPage('observation');app.observation.start();">Make an Observation</a></li>
-				<li><a href="javascript:app.showPage('drafts');">Drafts <span class="ui-li-count" for="drafts"></span></a></li>
-				<li><a href="javascript:app.showPage('outbox');">Outbox <span class="ui-li-count" for="outbox"></span></a></li>
-				<li><a href="javascript:app.showPage('sent');">Sent <span class="ui-li-count" for="sent"></span></a></li>
+				<li><a href="javascript:app.showPage('observation');app.observation.start();">@Button.MakeObservation</a></li>
+				<li><a href="javascript:app.showPage('drafts');">@Button.Drafts <span class="ui-li-count" for="drafts"></span></a></li>
+				<li><a href="javascript:app.showPage('outbox');">@Button.Outbox <span class="ui-li-count" for="outbox"></span></a></li>
+				<li><a href="javascript:app.showPage('sent');">@Button.Sent <span class="ui-li-count" for="sent"></span></a></li>
 			</ul>
 			<hr/>
 			<ul data-role="listview" data-icon="false">
-				<li><a href="javascript:app.showPage('about');">About</a></li>
-				<li><a href="javascript:app.showPage('settings');">Settings</a></li>
+				<li><a href="javascript:app.showPage('about');">@Button.About</a></li>
+				<li><a href="javascript:app.showPage('settings');">@Button.Settings</a></li>
 			</ul>
 			<br/>
 			<div id="signed-in-as" style="text-align: center;color:silver;font-style:italic;"></div>
-			<button type="button" onclick="app.signIn();" id="sign-in-link" class="ui-btn clr-btn-blue">Sign In</button>
-			<button type="button" onclick="app.signOut();" id="sign-out-link" class="ui-btn clr-btn-gray">Sign Out</button>
+			<button type="button" onclick="app.signIn();" id="sign-in-link" class="ui-btn clr-btn-blue">@Button.SignIn</button>
+			<button type="button" onclick="app.signOut();" id="sign-out-link" class="ui-btn clr-btn-gray">@Button.SignOut</button>
 
 	</div>
 </body>
