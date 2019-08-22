@@ -59,13 +59,20 @@
 			});
 
 			app.settings.load();
+
+			app.resources.load(function() {
+				//do token replacements here
+				app.resources.replaceAll(document.getElementById("__ROOT"));
+
+			});
+
 			app.settings.scatter();
 			app.observation.initialize();
 
 			app.latest.refresh();
 
 			app.observation.categories.refresh();
-			app.resources.load();
+
 		}, false);
 
 		
@@ -97,34 +104,7 @@
 			$("body>[data-role='panel'] ul[data-role='listview']").listview();
 
 
-
-			// $.get("data/categories.json", null, function(res) {
-			// 	observing.categories = res;
-			// 	var template = $("#category-block-template").html();
-			// 	Mustache.parse(template);
-
-			// 	var groups = {
-			// 		NATURAL:[],
-			// 		HUMAN:[],
-			// 		EVENT:[]
-			// 	}
-			// 	for (var i = 0; i < res.length; i++) {
-			// 		if(res[i].GroupID && res[i].GroupID != null)
-			// 		{
-			// 			var h = Mustache.render(template, res[i]);
-			// 			groups[res[i].GroupID].push(h);
-			// 		}
-			// 	};
-
-			// 	$("#categories_NATURAL").html(groups.NATURAL.join(""));
-			// 	$("#categories_EVENT").html(groups.EVENT.join(""));
-			// 	$("#categories_HUMAN").html(groups.HUMAN.join(""));
-
-			// 	for (var i = 0; i < res.length; i++) {
-			// 		//this is important for getting it to scale properly
-			// 		$("#categoryblock-" + res[i].CategoryID).find("svg").attr("width", "60").attr("height", "60");
-			// 	};
-			// }, "json");
+			
 		})
 
 		</script>
@@ -198,15 +178,15 @@
 <script id="category-block-template" type="template/mustache">
 	<div class="category-block" onclick="toggleChecked(this);" id="categoryblock-{{CategoryID}}" category="{{CategoryID}}">
 		{{{IconSvg}}}
-		<div>{{CategoryName}}</div>
+		<div>@Topic.{{CategoryID}}</div>
 	</div>
 </script>
 
 <script id="photo-thumbnail-template" type="template/mustache">
 	<div class="photo-thumbnail" index="{{Index}}">
 		<img style="width:100%;" src="{{Data}}" />
-		<div><input type="text" placeholder="Caption" value="{{Caption}}"/></div>
-		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="javascript:app.observation.photos.remove({{Index}});"><i class="zmdi zmdi-delete"></i> Remove</a></div>
+		<div><input type="text" placeholder="@Placeholder.Caption" value="{{Caption}}"/></div>
+		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="javascript:app.observation.photos.remove({{Index}});"><i class="zmdi zmdi-delete"></i> @Button.Remove</a></div>
 	</div>
 </script>
 
@@ -304,7 +284,7 @@
 	</ul>
 </script>
 
-<body class="clr-accent-blue">
+<body class="clr-accent-blue" id="__ROOT">
 
 	
 
@@ -641,14 +621,14 @@
 		
 			<div role="main" class="ui-content">
 
-				<h3>Sign In</h3>
+				<h3>@Title.SignIn</h3>
 
-				<label for="emailAddress">Email Address</label>
+				<label for="emailAddress">@Field.EmailAddress</label>
 				<input type="email" name="LoginName" value="" data-clear-btn="true">
-				<label for="password">Password</label>
+				<label for="password">@Field.Password</label>
 				<input type="password" name="Password" value="" >
 
-				<button class="ui-btn clr-btn-green" onclick="app.doSignIn();">Sign In</button>
+				<button class="ui-btn clr-btn-green" onclick="app.doSignIn();">@Button.SignIn</button>
 			</div>
 		
 		</div>
@@ -658,7 +638,7 @@
 		<nd2-include data-src="header.html"></nd2-include>
 	
 		<div role="main" class="ui-content">		
-			<label>Language</label>
+			<label>@Field.Language</label>
 			<select name="Language">
 				<option value="en">English</option>
 				<option value="es">Español</option>
@@ -667,17 +647,14 @@
 			
 			<br>
 
-			<label>Root URL</label>
+			<label>@Field.URL</label>
 			<input type="url" name="RootUrl" value="">
 
+			<br>
 			<div>
-				<button onclick="app.settings.gather();app.notify('Saved settings.');" class="ui-btn clr-btn-green">Save Settings</button>
+				<button onclick="app.settings.gather();app.notify('Saved settings.');" class="ui-btn clr-btn-green">@Button.SaveSettings</button>
 			</div>
 
-			<hr>
-			<div>
-				<button onclick="location.reload();" class="ui-btn clr-btn-orange">Reload</button>
-			</div>
 
 		</div>
 	

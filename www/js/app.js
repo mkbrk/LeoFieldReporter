@@ -102,7 +102,7 @@ var app = {
 
     resources : {
         _resources : null,
-        _re : /@([A-Z][a-zA-Z]*\.[A-Z][A-Za-z]+)/g,
+        _re : /@([A-Z][a-zA-Z]*\.[A-Z][A-Za-z_]+)/g,
         //expects text like @Button.Cancel
         replace : function(text, culture) {
             if(text && text.length > 0)
@@ -143,12 +143,20 @@ var app = {
 
             if(!culture || culture == null)
                 culture = app.settings.get("Language", "en");
+
             if(this._resources != null)
             {
                 if(this._resources.hasOwnProperty(culture))
                 {
-                    if(this._resources[culture].hasOwnProperty(token))
-                        return this._resources[culture][token];
+                    //this is so that a case-insensitive search will work
+                    //would be better to returns a case-insensitive dataset I guess
+                    var lcToken = token.toLowerCase();
+                    var keys = Object.keys(this._resources[culture]);
+                    for(var i = 0; i < keys.length; i++)
+                    {
+                        if(keys[i].toLowerCase() == lcToken)
+                            return this._resources[culture][keys[i]];
+                    }
                 }
             }
 
@@ -169,11 +177,16 @@ var app = {
             else
                 return "";
         },
-        load : function() {
+        load : function(onLoadedCallback) {
             var self = this;
             console.log("loaded resources from cache/bundle");
             this.getFromCache(function(res) {
                 self._resources = res;
+                
+                //this would be used to process tokens
+                if(onLoadedCallback)
+                    onLoadedCallback();
+
                 self.getFromServer(function(rr) {
                     console.log("refreshed resources from server");
                     self._resources = rr;
@@ -226,7 +239,7 @@ var app = {
     //this should be useful on other apps
     settings : {
         _values : {
-            RootUrl : "https://leonetwork-staging.azurewebsites.net",
+            RootUrl : "https://staging.leonetwork.org",
             Language:"en"
         },
         get : function(key, defaultValue) {
@@ -250,6 +263,7 @@ var app = {
             var storage = window.localStorage;
             var s = JSON.stringify(this._values);
             storage.setItem("SETTINGS", s);
+            location.reload(); //if settings changed, assume we need to rerun all start up things...
         },
         scatter : function() {
             var wrapper = $("#settings");
@@ -912,6 +926,11 @@ var app = {
                     //this is important for getting it to scale properly
                     $("#categoryblock-" + res[i].CategoryID).find("svg").attr("width", "60").attr("height", "60");
                 };
+
+                //does language replacements
+                app.resources.replaceAll(document.getElementById("categories_NATURAL"));
+                app.resources.replaceAll(document.getElementById("categories_EVENT"));
+                app.resources.replaceAll(document.getElementById("categories_HUMAN"));
             },
             scatter : function() {
                 var current = app.observation.current;
