@@ -6,6 +6,40 @@ var app = {
         });
     },
 
+    working : function(msg) {
+        var l = $("#loading");
+        if(msg == false)
+        {
+            l.removeClass("fadeInDown").addClass("fadeOutUp");
+            l.hide();
+        }
+        else
+        {
+            l.find("div").html(msg);
+            l.removeClass("fadeOutUp").addClass("fadeInDown");
+            l.show();
+        }
+    },
+
+    checkEmail : function(email, callback) {
+        $.post(app.getRemoteUrl("/en/fieldreporter/checkenrollment"), "EmailAddress=" + email, function(res) {
+            app.working(false);
+            if(res.Status == "OK")
+            {
+                window.open("https://www.leonetwork.org/en/enroll?EmailAddress=" + email, "_system");
+            }
+            else if(res.Status == "ENROLLED")
+            {
+                navigator.notification.alert("You are already enrolled in the LEO Network. Please sign in." , null, "Already Enrolled", "OK");
+                app.showPage("sign-in");
+            }
+            else
+            {
+                navigator.notification.alert(res.Message, null, "Error", "OK");
+            }
+        }, "json");
+    },
+
     dateTimeReviver : function (key, value) {
         var a;
         if (typeof value === 'string') {
@@ -300,12 +334,6 @@ var app = {
                 
                 if(n == "ObservationTitle")
                     self.setTitle();
-                self.save();
-            });
-
-            $(".observation-page").find(".category-block").on("change", function(e) {
-                //spin through and gather them all
-                self.categories.gather();
                 self.save();
             });
 
@@ -902,6 +930,7 @@ var app = {
                 });
             },
             setup : function(res) {
+                //runs once only
                 var template = $("#category-block-template").html();
                 Mustache.parse(template);
 
@@ -931,6 +960,13 @@ var app = {
                 app.resources.replaceAll(document.getElementById("categories_NATURAL"));
                 app.resources.replaceAll(document.getElementById("categories_EVENT"));
                 app.resources.replaceAll(document.getElementById("categories_HUMAN"));
+
+                //setup event handler
+                $(".observation-page").find(".category-block").on("change", function(e) {
+                    //spin through and gather them all
+                    app.observation.categories.gather();
+                    app.observation.save();
+                });
             },
             scatter : function() {
                 var current = app.observation.current;

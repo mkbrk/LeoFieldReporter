@@ -67,11 +67,12 @@
 			});
 
 			app.settings.scatter();
+
+			app.observation.categories.refresh();
 			app.observation.initialize();
 
 			app.latest.refresh();
 
-			app.observation.categories.refresh();
 
 		}, false);
 
@@ -278,7 +279,7 @@
 			<li>
 				<h2>{{ObservationTitle}}{{^ObservationTitle}}Untitled Observation{{/ObservationTitle}}</h2>
 				<p>Sent {{_SENT}}</p>
-				<p><a href="https://www.leonetwork.org/posts/show/{{ObservationID}}">View on LEO Network <i class="zmdi zmdi-open-in-new"></i></a><p>
+				<p><a href="https://www.leonetwork.org/posts/show/{{ObservationID}}">@Button.ViewOnLEONetwork <i class="zmdi zmdi-open-in-new"></i></a><p>
 			</li>
 		{{/drafts}}
 	</ul>
@@ -286,6 +287,10 @@
 
 <body class="clr-accent-blue" id="__ROOT">
 
+	<div id="loading" class="animated" style="display:none; z-index:9999; box-shadow: 2px 2px 10px #777777; position:absolute; top:0px; left:0px;right:0px; margin-left:10%;margin-right:10%;padding:20px;text-align: center;background-color:white;border-bottom-left-radius: 20px;border-bottom-right-radius: 20px;">
+		<div></div>
+		<img src="img/loading.gif" style="width:50px;" />
+	</div>
 	
 
 	<div data-role="page" id="home">
@@ -325,13 +330,13 @@
 				<br>
 				<div>
 					<button type="button" onclick="app.observation.continueEditing();" class="ui-btn ui-btn-icon-right clr-btn-green" >
-						Continue Editing
+						@Button.ContinueEditing
 						<i class="zmdi zmdi-chevron-right"></i>
 					</button>
 					<br><br>
 					<button type="button" onclick="app.observation.startOver();" class="ui-btn  ui-btn-icon-left " >
 						<i class="zmdi zmdi-refresh"></i>
-						Start Over
+						@Button.StartOver
 					</button>
 				</div>
 			</div>
@@ -361,7 +366,7 @@
 				<button type="button" onclick="app.observation.geolocation.getCurrent();" class="ui-btn  clr-btn-blue ui-btn-icon-left" >
 						<i class="zmdi zmdi-my-location"></i>
 
-					Get Current Location
+					@Button.GetCurrentLocation
 				</button>
 
 				<input type="text" name="LocationDescription" />
@@ -617,18 +622,46 @@
 
 	<div data-role="page" id="sign-in">
 
+		<nd2-include data-src="header.html"></nd2-include>
+	
+		<div role="main" class="ui-content">
+
+			<h3>@Title.SignIn</h3>
+
+			<label for="emailAddress">@Field.EmailAddress</label>
+			<input type="email" name="LoginName" value="" data-clear-btn="true">
+			<label for="password">@Field.Password</label>
+			<input type="password" name="Password" value="" >
+
+			<button class="ui-btn clr-btn-green" onclick="app.doSignIn();">@Button.SignIn</button>
+			<button class="ui-btn " onclick="app.showPage('forgot-password');">@Button.ForgotPassword</button>
+			<hr>
+			<button class="ui-btn " onclick="app.showPage('enroll');">@Button.Enroll</button>
+		</div>
+	
+	</div>
+
+	<script>
+		function maybeEnroll()
+		{
+			app.working("Checking your email address...");
+			var email = $('#EnrollmentEmailAddress').val();
+			app.checkEmail(email);
+		}
+	</script>
+
+	<div data-role="page" id="enroll">
+
 			<nd2-include data-src="header.html"></nd2-include>
 		
 			<div role="main" class="ui-content">
-
-				<h3>@Title.SignIn</h3>
+	
+				<h3>@Title.Enroll</h3>
 
 				<label for="emailAddress">@Field.EmailAddress</label>
-				<input type="email" name="LoginName" value="" data-clear-btn="true">
-				<label for="password">@Field.Password</label>
-				<input type="password" name="Password" value="" >
-
-				<button class="ui-btn clr-btn-green" onclick="app.doSignIn();">@Button.SignIn</button>
+				<input type="email" value="" id="EnrollmentEmailAddress" data-clear-btn="true">
+	
+				<button class="ui-btn clr-btn-blue" onclick="maybeEnroll();">@Button.Enroll</button>
 			</div>
 		
 		</div>
@@ -654,8 +687,6 @@
 			<div>
 				<button onclick="app.settings.gather();app.notify('Saved settings.');" class="ui-btn clr-btn-green">@Button.SaveSettings</button>
 			</div>
-
-
 		</div>
 	
 	</div>
