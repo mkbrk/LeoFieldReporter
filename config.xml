@@ -56,7 +56,7 @@
         <splash height="1536" platform="ios" src="www/res/screen/ios/splash2048x1536.png" width="2048" />
         <splash height="768" platform="ios" src="www/res/screen/ios/splash1024x768.png" width="1024" />
         <splash height="2048" platform="ios" src="www/res/screen/ios/splash1536x2048.png" width="1536" />
-        <splash height="1024" platform="ios" src="www/res/screen/ios/splash768x1024" width="768" />
+        <splash height="1024" platform="ios" src="www/res/screen/ios/splash768x1024.png" width="768" />
         <splash height="960" platform="ios" src="www/res/screen/ios/splash640x960.png" width="640" />
         <splash height="480" platform="ios" src="www/res/screen/ios/splash320x480.png" width="320" />
     </platform>
