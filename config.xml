@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget id="org.leonetwork.fieldreporter" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
-    <name>Reporter</name> <!--this will become the home screen text for the app-->
+    <name>Reporter</name>
     <description>
     </description>
     <author email="support@leonetwork.org" href="https://www.leonetwork.org">
