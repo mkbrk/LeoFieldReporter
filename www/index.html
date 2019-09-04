@@ -63,7 +63,15 @@
 			app.resources.load(function() {
 				//do token replacements here
 				app.resources.replaceAll(document.getElementById("__ROOT"));
+				var languages = app.resources.getAll("Language.Name");
+				var dd = $("#language_dropdown");
+				var h = "";
+				for(var i = 0; i < languages.length; i++)
+				{
+					h += "<option value='" + languages[i][0] + "'>" + languages[i][1] + "</option>";
+				}
 
+				dd.html(h);
 			});
 
 			app.settings.scatter();
@@ -223,12 +231,22 @@
 
 <script id="post-card" type="template/mustache">
 
-	<div class="nd2-card card-media-right card-media-small">
+	<div class="nd2-card ">
 
-			<div class="card-media">
-				<img src="{{Thumbnail}}">
+		{{#Thumbnail}}
+			{{#MapThumbnail}}
+				<div style="float:right;margin-top:90px;margin-right:10px;width:100px;background-size:cover !important;background-image:url({{MapThumbnail}});background-repeat:no-repeat;height:100px;background-color:red;">
+					&nbsp;
+				</div>
+			{{/MapThumbnail}}
+		
+			<div style="width:100%;background-size:cover !important;background-image:url({{Thumbnail}});background-repeat:no-repeat;height:200px;">
+				&nbsp;
 			</div>
 
+
+		{{/Thumbnail}}
+			
 			<div class="card-title has-supporting-text">
 				<h5 class="card-subtitle">{{ObservationDateFriendly}}</h5>
 				<h3 class="card-primary-title" style="white-space:initial;overflow:auto;text-overflow:initial;">{{{ObservationTitle}}}</h3>
@@ -680,10 +698,7 @@
 	
 		<div role="main" class="ui-content">		
 			<label>@Field.Language</label>
-			<select name="Language">
-				<option value="en">English</option>
-				<option value="es">Español</option>
-				<option value="fr">Français</option>
+			<select name="Language" id="language_dropdown">
 			</select>
 			
 			<br>

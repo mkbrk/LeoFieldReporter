@@ -84,7 +84,7 @@ var app = {
             }
             else
             {
-                $.get(app.getRemoteUrl("/en/fieldreporter/latest"), null, function(res) {
+                $.get(app.getRemoteUrl("/en/fieldreporter/latest?mapzoom=1&imageSize=small&take=10"), null, function(res) {
                     self.saveToCache(res);
                     if(callback)    
                         callback(res);
@@ -170,6 +170,12 @@ var app = {
             }
             return textNodes;
         },
+        getCultures : function() {
+            if(this._resources != null)
+                return Object.keys(this._resources);
+            else
+                return [];
+        },
         //expects an individual token 
         get : function(token, culture) {
             if(token.indexOf("@") == 0)
@@ -195,6 +201,16 @@ var app = {
             }
 
             return this._defaultValue(token);
+        },
+        getAll : function(token) {
+            //returns array of language/name pairs
+            var cultures = this.getCultures();
+            var t = [];
+            for(var i = 0; i < cultures.length; i++)
+            {
+                t.push([cultures[i], this.get(token, cultures[i])]);
+            }
+            return t;
         },
         _defaultValue : function(token) {
             if(token && token != null)

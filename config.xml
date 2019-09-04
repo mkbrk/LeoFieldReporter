@@ -12,25 +12,20 @@
     <preference name="phonegap-version" value="cli-9.0.0" />
     <preference name="StatusBarBackgroundColor" value="#000000" />
     <preference name="StatusBarOverlaysWebView" value="false" />
-    <preference name="target-device" value="handset"/>
+    <preference name="target-device" value="handset" />
     <preference name="Orientation" value="portrait" />
-
-    <edit-config target="NSCameraUsageDescription" file="*-Info.plist" mode="merge">
+    <edit-config file="*-Info.plist" mode="merge" target="NSCameraUsageDescription">
         <string>need camera access to take pictures</string>
     </edit-config>
-
-    <edit-config target="NSPhotoLibraryUsageDescription" file="*-Info.plist" mode="merge">
+    <edit-config file="*-Info.plist" mode="merge" target="NSPhotoLibraryUsageDescription">
         <string>need photo library access to get pictures from there</string>
     </edit-config>
-
-    <edit-config target="NSLocationWhenInUseUsageDescription" file="*-Info.plist" mode="merge">
+    <edit-config file="*-Info.plist" mode="merge" target="NSLocationWhenInUseUsageDescription">
         <string>need location access to find things nearby</string>
     </edit-config>
-
-    <edit-config target="NSPhotoLibraryAddUsageDescription" file="*-Info.plist" mode="merge">
+    <edit-config file="*-Info.plist" mode="merge" target="NSPhotoLibraryAddUsageDescription">
         <string>need photo library access to save pictures there</string>
     </edit-config>
-
     <platform name="android">
         <preference name="android-minSdkVersion" value="19" />
         <preference name="Orientation" value="portrait" />
