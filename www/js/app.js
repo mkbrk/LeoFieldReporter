@@ -51,6 +51,131 @@ var app = {
         return value;
     },
 
+    pages : {
+        saveToCache : function(data) {
+            if(data != null)
+                window.localStorage.setItem("PAGES", JSON.stringify(data));
+        },
+        getFromCache : function(callback) {
+            var c = window.localStorage.getItem("PAGES");
+            if(c != null)
+            {
+                if(callback)
+                    callback(JSON.parse(c));
+            }
+            else
+            {
+                //if not already in cache,
+                //get from bundle, store in cache, and call callback
+                var self = this;
+                this.getFromBundle(function(data) {
+                    self.saveToCache(data);
+                    if(callback)
+                        callback(data);
+                })
+            }
+        },
+        getFromServer : function(callback) {
+            var self = this;
+            if(navigator.connection.type == Connection.NONE)
+            {
+                self.getFromCache(callback);
+            }
+            else
+            {
+                $.get(app.getRemoteUrl("/en/fieldreporter/pages"), null, function(res) {
+                    self.saveToCache(res);
+                    if(callback)    
+                        callback(res);
+                }, "json");
+            }
+
+        },
+        getFromBundle : function(callback) {
+            $.get("data/pages.json", null, function(res) {
+                if(callback)    
+                    callback(res);
+            }, "json");
+        },
+        show : function(id) {
+            $("#page-container .ui-content").find("div.article").hide();
+            $("#page-container .ui-content").find("#article-" + id).show();
+
+            app.showPage("page-container");
+        },
+        scatter : function(res) {
+            var list = $("#pages-list");
+            list.html("");
+
+            if(res != null)
+            {
+                var h = "";
+                var pages = "";
+                var culture = app.settings.get("Language", "en");
+                var tmp = $("#article-template").html();
+                Mustache.parse(tmp);
+
+                for(var i = 0; i < res.length; i++)
+                {
+                    var localization = null;
+                    for(var j = 0; j < res[i].Localizations.length; j++)
+                    {
+                        if(res[i].Localizations[j].Culture == culture)
+                        {
+                            localization = res[i].Localizations[j];
+                            break;
+                        }
+                    }
+                    if(localization == null)
+                    {
+                        h +=  "<li><a href=\"javascript:app.pages.show('" + res[i].ArticleID + "');\">" + res[i].TitleHtml + "</a></li>";
+                        pages += Mustache.render(tmp, res[i]);
+                    }
+                    else
+                    {
+                        //got to fix this up so that the localized attachments have the actual attachment data
+                        //these make the template work
+                        localization.ArticleID = res[i].ArticleID;
+                        if(localization.Attachments != null)
+                        {
+                            for(var j = 0; j < localization.Attachments.length; j++)
+                            {
+                                var raw = null;
+                                for(var k = 0; k < res[i].Attachments.length; k++)
+                                {
+                                    if(res[i].Attachments[k].AttachmentID == localization.Attachments[j].AttachmentID)
+                                        raw = res[i].Attachments[k].Base64Data;
+                                }
+                                localization.Attachments[j].Base64Data = raw;
+                            }
+                        }
+                        h +=  "<li><a href=\"javascript:app.pages.show('" + res[i].ArticleID + "');\">" + localization.TitleHtml + "</a></li>";
+                        pages += Mustache.render(tmp, localization);
+                    }
+                }
+
+                $("#page-container .ui-content").html(pages);
+                list.html(h);
+            }
+
+            list.listview("refresh");
+        },
+        refresh : function() {
+            this.getFromCache(function(res) {
+                //immediately load from cache/bundle
+                console.log("showing PAGES from the cache/bundle");
+                app.pages.scatter(res);
+
+                //once that's done, try loading from server
+                app.pages.getFromServer(function(res) {
+                    //this saves to cache internally
+                    console.log("showing PAGES from the server");
+                    app.pages.scatter(res);
+                });
+            });   
+        }
+    },
+
     //some stuff to get posts from LEO - maybe useful elsewhere
     latest : {
         saveToCache : function(posts) {
@@ -336,6 +461,112 @@ var app = {
 
     observation : {
         current : null,
+
+        quick : {
+            current : function() {
+                return app.observation.get("QUICK");
+            },
+            start : function () {
+                var obs = app.observation.defaultObservation();
+                obs._ID = "QUICK";
+    
+                //add a single photo
+                var opts = {
+                    quality : 50,
+                    destinationType : Camera.DestinationType.FILE_URI,
+                    sourceType : Camera.PictureSourceType.CAMERA,
+                    allowEdit : false,
+                    encodingType: Camera.EncodingType.JPEG,
+                    targetWidth: 1000,
+                    targetHeight: 1000,
+                    mediaType: Camera.MediaType.PICTURE,
+                    correctOrientation: true,
+                    saveToPhotoAlbum : false, //could make this an option later
+                    popoverOptions : null, //IOS thing
+                    cameraDirection : Camera.Direction.BACK //could make this an option too
+                };
+    
+                navigator.camera.getPicture(function(imgData) {
+                    
+                    var att = {
+                        Data: imgData,
+                        Caption: null,
+                        Attribution : null,
+                        ContentType : "image/jpg"
+                    }
+    
+                    obs.Photos.push(att);
+                
+                    //add geolocation
+                    if(("geolocation" in navigator))
+                    {
+                        navigator.geolocation.getCurrentPosition(function (position) {
+                            obs.LocationLat = position.coords.latitude;
+                            obs.LocationLng = position.coords.longitude;
+
+                            app.observation.save(obs);
+                            app.showPage("finish-quick");
+
+                        }, function(err) {
+                            app.observation.save(obs);
+                            app.showPage("finish-quick");
+                        });
+                    }
+                    else
+                    {
+                        app.observation.save(obs);
+                        app.showPage("finish-quick");
+                    }
+    
+                    
+    
+                }, function(errorMsg) {
+                    console.log(errorMsg);
+                }, opts);
+                
+            },
+            setTitle : function(t) {
+                var c = this.current();
+                if(c != null)
+                {
+                    c.ObservationTitle = t;
+                    app.observation.save(c);
+                }
+            },  
+            saveAsDraft : function() {
+                var obj = this.current();
+                if(obj != null)
+                {
+                    app.observation.setStatus("D", obj); //saves internally as draft
+                }
+
+                app.showPage('home');
+            },
+            continueEditing : function() {
+                var obj = this.current();
+                if(obj != null)
+                {
+                    app.observation.setStatus("D", obj); //saves internally as draft
+                    app.showPage('observation');
+                    app.observation.drafts.edit(obj._ID);
+                }
+                else
+                {
+                    console.log("No current quick observation.");
+                }
+            },
+            send : function() {
+                var obj = current();
+                if(obj != null)
+                    app.observation.setStatus("W", obj); //saves internally - W = "Waiting to send"
+                app.notify("Your observation was sent.");
+                app.showPage("home");
+            },
+            abandon : function() {
+                app.observation.remove("QUICK");
+                app.showPage("home");
+            }
+        },
         initialize : function() {
 
             this.current = this.defaultObservation();
@@ -543,6 +774,7 @@ var app = {
             return c;
         },
         remove : function(id) {
+            //TODO: make this also delete files on the device
             window.localStorage.removeItem(id);
         },
         save : function(obs) {
@@ -1100,7 +1332,7 @@ var app = {
                     quality : 50,
                     destinationType : Camera.DestinationType.FILE_URI,
                     sourceType : srcType,
-                    allowEdit : true,
+                    allowEdit : false,
                     encodingType: Camera.EncodingType.JPEG,
                     targetWidth: 1000,
                     targetHeight: 1000,
@@ -1301,10 +1533,6 @@ var app = {
     },
 
     
-    initialize: function() {
-        
-    },
-
     showingPage : function(id) {
         //use this to run some code upon showing a page
         var $el = $("#" + id);
@@ -1361,6 +1589,21 @@ var app = {
             else
             {
                 $el.find(".ui-content").html("<h3 class='nonefound'>No Sent Observations</h3>");
+            }
+        }
+        else if(id == "finish-quick")
+        {
+            var c = app.observation.quick.current();
+            $("#Quick_Photo").attr("src", "");
+            $("#Quick_Headline").val("");
+
+            if(c != null)
+            {
+                if(c.Photos.length > 0)
+                {
+                    $("#Quick_Photo").attr("src", c.Photos[0].Data);
+                }
+                $("#Quick_Headline").val(c.ObservationTitle);
             }
         }
         else if(id == "observation")

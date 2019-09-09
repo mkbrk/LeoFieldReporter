@@ -81,6 +81,7 @@
 
 			app.latest.refresh();
 
+			app.pages.refresh();
 
 		}, false);
 
@@ -229,6 +230,21 @@
 	</div>
 </script>
 
+<script id="article-template" type="text/template">
+	<div id="article-{{ArticleID}}" class="article">
+		{{{BodyHtml}}}
+
+		<div class="article-attachments">
+		{{#Attachments}}
+			<div class="article-attachment">
+				<img src="{{Base64Data}}" style="max-width:100%;"/>
+				<div>{{{CaptionHtml}}}</div>
+			</div>
+		{{/Attachments}}
+		</div>
+	</div>
+</script>
+
 <script id="post-card" type="template/mustache">
 
 	<div class="nd2-card ">
@@ -262,7 +278,7 @@
 				<div class="row between-xs">
 					<div class="col-xs-12 align-right">
 						<div class="box">
-							<a href="#" onclick="window.open('https://www.leonetwork.org/posts/show/{{ObservationID}}', '_system');return false;" class="ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button">Read More</a>
+							<a href="#" onclick="window.open('https://www.leonetwork.org/posts/show/{{ObservationID}}', '_system');return false;" class="ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button">Read More on <span style="color:#03A9F4;">LEO Network</span></a>
 						</div>
 					</div>
 				</div>
@@ -325,13 +341,29 @@
 
 		<nd2-include data-src="header.html"></nd2-include>
 	
+		<div role="main" class="ui-content" style="text-align: center;">
+			<br><br><br>
+		<button type="button" onclick="app.observation.quick.start();" class="ui-btn clr-btn-deep-orange"><i class="zmdi zmdi-camera" style="font-size:xx-large;"></i><br> Quick Observation</button>
+			<div class="footnote">See something unusual? Use this to take a quick photo of it. You can always add more information before submitting it to LEO.</div>	
+		<br><br>
+			<button type="button" onclick="app.showPage('observation');app.observation.start();" class="ui-btn clr-btn-cyan"><i class="zmdi zmdi-plus" style="font-size:xx-large;"></i><br> Full Observation</button>
+			<div class="footnote">Use this if you have a bit more time. You'll be able to fine-tune your observation before submitting to LEO.</div>
+		</div>
+	
+	</div>
+
+	<div data-role="page" id="recent_posts">
+
+		<nd2-include data-src="header.html"></nd2-include>
+	
 		<div role="main" class="ui-content">
-			<div>
-				Visit <a href="#" onclick="window.open('https://www.leonetwork.org', '_system');return false;" >leonetwork.org <i class="zmdi zmdi-open-in-new"></i></a> for thousands of observations of environmental change. Some recent observations appear below. 
-			</div>
+			<div style="color:gray;">Recent Posts from Members</div>
 			
 			<div id="latest"></div>
 
+			<div>
+					Visit <a href="#" onclick="window.open('https://www.leonetwork.org', '_system');return false;" >leonetwork.org <i class="zmdi zmdi-open-in-new"></i></a> for thousands of additional observations of environmental change.  
+			</div>
 		</div>
 	
 	</div>
@@ -556,6 +588,61 @@
 		
 	</div>
 
+	<div data-role="page" id="finish-quick">
+
+			<nd2-include data-src="header.html"></nd2-include>
+		
+			<div role="main" class="ui-content">
+				<label for="Quick_ObservationDate">@Field.ObservationDate</label>
+				<div id="Quick_ObservationDate">Today</div>
+
+				<br>
+
+				<label for="Quick_Location">@Field.Location</label>
+				<div id="Quick_Location">Current Location</div>
+
+				<br>
+
+				<img id="Quick_Photo" style="max-width:100%;" />
+
+				<br>
+				<br>
+
+				<label for="Quick_Headline">In a few words, what did you observe?</label>
+				<input type="text" id="Quick_Headline" onchange="app.observation.quick.setTitle(this.value);" />
+
+				<br>
+
+				<div>
+					<button type="button" onclick="app.observation.quick.saveAsDraft();" class="ui-btn clr-btn-purple ui-btn-icon-left" >
+						<i class="zmdi zmdi-save"></i>
+						Save as Draft
+					</button>
+					<div class="footnote">You'll be able to come back to it later.</div>
+					<br><br>
+
+					<button type="button" onclick="app.observation.quick.continueEditing();" class="ui-btn clr-btn-blue ui-btn-icon-left" >
+						<i class="zmdi zmdi-edit"></i>
+						Continue Editing
+					</button>
+					<div class="footnote">Add more information to your observation.</div>
+					<br><br>
+					<button type="button" onclick="app.observation.quick.send();" class="ui-btn  clr-btn-green ui-btn-icon-left" >
+						<i class="zmdi zmdi-mail-send"></i>
+						Send Now
+					</button>
+					<div  class="footnote">Your observation will be submitted to the LEO Network.</div>
+					<br><br>
+					<button type="button" onclick="app.observation.quick.abandon();" class="ui-btn clr-btn-red  ui-btn-icon-left" >
+						<i class="zmdi zmdi-delete"></i>
+					Delete &amp; Start Over</button>
+					<div  class="footnote">Your draft will be deleted and you'll be able to start a new one.</div>
+
+				</div>
+			</div>
+		
+		</div>
+
 	<div data-role="page" id="drafts">
 
 		<nd2-include data-src="header.html"></nd2-include>
@@ -714,19 +801,12 @@
 	
 	</div>
 
-	<div data-role="page" id="about">
+	<div data-role="page" id="page-container">
 	
 			<nd2-include data-src="header.html"></nd2-include>
 		
 			<div role="main" class="ui-content">
-				<h3>About the Local Environmental Observer Network</h3>
-				<p>LEO is a network of local observers and topic experts who share knowledge about unusual animal, environment, and weather events. With LEO, you can connect with others in your community, share observations, raise awareness, and find answers about significant environmental events. You can also engage with topic experts in many different organizations and become part of a broader observer community.</p>
 
-				<p><a href="#" onclick="window.open('https://www.leonetwork.org', '_system'); return false;">Visit us at leonetwork.org</a></p>
-
-				<h3>About the LEO Field Reporter App</h3>
-
-				<p>The LEO Field Reporter app is the easiest way to contribute to the LEO Network. It is designed to work without a network connection, so it's usable wherever you are witnessing unusual environmental events.</p>
 
 			</div>
 		
@@ -737,19 +817,29 @@
 			<div style="text-align:center;">
 				<a href="javascript:app.showPage('home');"><img style="max-width:150px;" src="img/icon400x400.png" /></a>
 				<h3>@Heading.LocalEnvironmentalObserverNetwork</h3>
+
+				<button type="button" class="ui-btn clr-btn-purple" onclick="app.showPage('home');">@Button.MakeObservation</button>
+
 			</div>
 			
 			<hr/>
 
 			<ul data-role="listview" data-icon="false">
-				<li><a href="javascript:app.showPage('observation');app.observation.start();">@Button.MakeObservation</a></li>
 				<li><a href="javascript:app.showPage('drafts');">@Button.Drafts <span class="ui-li-count" for="drafts"></span></a></li>
 				<li><a href="javascript:app.showPage('outbox');">@Button.Outbox <span class="ui-li-count" for="outbox"></span></a></li>
 				<li><a href="javascript:app.showPage('sent');">@Button.Sent <span class="ui-li-count" for="sent"></span></a></li>
 			</ul>
 			<hr/>
+
 			<ul data-role="listview" data-icon="false">
-				<li><a href="javascript:app.showPage('about');">@Button.About</a></li>
+				<li><a href="javascript:app.showPage('recent_posts');">@Button.RecentPosts</a></li>
+			</ul>
+
+			<ul data-role="listview" data-icon="false" id="pages-list">
+
+			</ul>
+
+			<ul data-role="listview" data-icon="false">
 				<li><a href="javascript:app.showPage('settings');">@Button.Settings</a></li>
 			</ul>
 			<br/>
