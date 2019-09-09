@@ -83,6 +83,8 @@
 
 			app.pages.refresh();
 
+			app.showPage("home");
+
 		}, false);
 
 		
@@ -205,7 +207,7 @@
 <script id="photo-thumbnail-template" type="template/mustache">
 	<div class="photo-thumbnail" index="{{Index}}">
 		<img style="width:100%;" src="{{Data}}" />
-		<div><input type="text" placeholder="@Placeholder.Caption" value="{{Caption}}"/></div>
+		<div><input type="text" placeholder="Caption" value="{{Caption}}"/></div>
 		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="javascript:app.observation.photos.remove({{Index}});"><i class="zmdi zmdi-delete"></i> @Button.Remove</a></div>
 	</div>
 </script>
@@ -342,13 +344,26 @@
 		<nd2-include data-src="header.html"></nd2-include>
 	
 		<div role="main" class="ui-content" style="text-align: center;">
-			<br><br><br>
-		<button type="button" onclick="app.observation.quick.start();" class="ui-btn clr-btn-deep-orange"><i class="zmdi zmdi-camera" style="font-size:xx-large;"></i><br> Quick Observation</button>
-			<div class="footnote">See something unusual? Use this to take a quick photo of it. You can always add more information before submitting it to LEO.</div>	
-		<br><br>
-			<button type="button" onclick="app.showPage('observation');app.observation.start();" class="ui-btn clr-btn-cyan"><i class="zmdi zmdi-plus" style="font-size:xx-large;"></i><br> Full Observation</button>
-			<div class="footnote">Use this if you have a bit more time. You'll be able to fine-tune your observation before submitting to LEO.</div>
+			<div id="continueEditingArea" style="display: none;">
+				<h3>You have an unsaved draft. Do you want to continue editing it?</h3>
+				<button type="button" onclick="app.observation.continueEditing();app.showPage('observation');" class="ui-btn clr-btn-light-green" >
+					<i class="zmdi zmdi-edit" style="font-size:xx-large;"></i><br>
+					@Button.ContinueEditing
+				</button>
+			</div>
+
+			<br><br>
+
+			<button type="button" onclick="app.observation.quick.start();" class="ui-btn clr-btn-deep-orange"><i class="zmdi zmdi-camera" style="font-size:xx-large;"></i><br> Quick Observation</button>
+				<div class="footnote">See something unusual? Use this to take a quick photo of it. You can always add more information before submitting it to LEO.</div>	
+			<br><br>
+				<button type="button" onclick="app.showPage('observation');app.observation.start();" class="ui-btn clr-btn-cyan"><i class="zmdi zmdi-plus" style="font-size:xx-large;"></i><br> Full Observation</button>
+				<div class="footnote">Use this if you have a bit more time. You'll be able to fine-tune your observation before submitting to LEO.</div>
+			
+			
 		</div>
+
+
 	
 	</div>
 

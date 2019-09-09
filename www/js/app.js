@@ -549,6 +549,7 @@ var app = {
                     app.observation.setStatus("D", obj); //saves internally as draft
                     app.showPage('observation');
                     app.observation.drafts.edit(obj._ID);
+                    app.observation.show('headline-page'); //make sure it goes to teh beginning
                 }
                 else
                 {
@@ -1281,6 +1282,11 @@ var app = {
             }
         },
         continueEditing : function() {
+            console.log(this.current);
+            
+            if(this.current == null)
+                this.current = this.get("UNSAVEDOBSERVATION");
+
             if(this.current != null)
             {
                 if(this.current._CURRENTSTEP != null)
@@ -1543,6 +1549,13 @@ var app = {
         else if(id == "sign-in")
         {
             $el.find("[name=LoginName]").val(window.localStorage.getItem("LOGIN"));
+        }
+        else if(id == "home")
+        {
+            if(app.observation.hasUnsavedDraft())
+                $("#continueEditingArea").show();
+            else
+            $("#continueEditingArea").hide();
         }
         else if(id == "drafts")
         {
