@@ -1011,6 +1011,7 @@ var app = {
                 if(d != null)
                 {
                     app.observation.edit(d);
+                    app.observation.show('headline-page'); //go to the beginning
                 }
                 else
                 {
@@ -1283,7 +1284,7 @@ var app = {
         },
         continueEditing : function() {
             console.log(this.current);
-            
+
             if(this.current == null)
                 this.current = this.get("UNSAVEDOBSERVATION");
 
