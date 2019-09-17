@@ -545,7 +545,7 @@
 						</button>
 						<div class="footnote">You'll be able to continue editing your observation later.</div>
 						<br><br>
-						<button type="button" onclick="app.observation.drafts.send();" class="ui-btn  clr-btn-green ui-btn-icon-left" >
+						<button type="button" onclick="app.observation.show('about-to-send-page');" class="ui-btn  clr-btn-green ui-btn-icon-left" >
 							<i class="zmdi zmdi-mail-send"></i>
 							Send Now
 						</button>
@@ -557,6 +557,32 @@
 						<div  class="footnote">Your draft will be deleted and you'll be able to start a new one.</div>
 
 					</div>
+			</div>
+
+			<div id="about-to-send-page" class="observation-page" style="display: none;" show-next="false">
+				<div class="unauth-only">
+
+					<h3>@Title.SignIn</h3>
+		
+					<label for="emailAddress">@Field.EmailAddress</label>
+					<input type="email" name="LoginName" value="" data-clear-btn="true">
+					<label for="password">@Field.Password</label>
+					<input type="password" name="Password" value="" >
+		
+					<button class="ui-btn clr-btn-green" onclick="app.doSignIn('#about-to-send-page', 'observation');">@Button.SignIn</button>
+					<button class="ui-btn " onclick="app.showPage('forgot-password');">@Button.ForgotPassword</button>
+					<hr>
+					<button class="ui-btn " onclick="app.showPage('enroll');">@Button.Enroll</button>
+				</div>
+
+				<div class="auth-only">
+					<p>By submitting your observation, you give the LEO Network permission to contact you about your observation, edit it, share it with other LEO Network members, and publish it to the LEO Network website, mobile apps, and newsletters.
+					</p>
+
+					<button class="ui-btn clr-btn-green" onclick="app.observation.drafts.send();">
+						<i class="zmdi zmdi-check-circle"></i>
+						I Agree</button>
+				</div>
 			</div>
 
 			<!--these options are available via the ... menu while editing-->
@@ -761,7 +787,7 @@
 			<label for="password">@Field.Password</label>
 			<input type="password" name="Password" value="" >
 
-			<button class="ui-btn clr-btn-green" onclick="app.doSignIn();">@Button.SignIn</button>
+			<button class="ui-btn clr-btn-green" onclick="app.doSignIn('#sign-in');">@Button.SignIn</button>
 			<button class="ui-btn " onclick="app.showPage('forgot-password');">@Button.ForgotPassword</button>
 			<hr>
 			<button class="ui-btn " onclick="app.showPage('enroll');">@Button.Enroll</button>

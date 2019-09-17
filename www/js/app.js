@@ -559,8 +559,14 @@ var app = {
             send : function() {
                 var obj = current();
                 if(obj != null)
+                {
                     app.observation.setStatus("W", obj); //saves internally - W = "Waiting to send"
-                app.notify("Your observation was sent.");
+                    app.notify("Your observation was sent.");
+                }
+                else
+                {
+                    navigator.notification.alert("No current observation.", null, "Error", "OK");
+                }
                 app.showPage("home");
             },
             abandon : function() {
@@ -1632,6 +1638,19 @@ var app = {
     },
     showPage: function(id)
     {
+        var showme = $("#" + id);
+
+        if(app.isSignedIn())
+        {
+            showme.find(".auth-only").show();
+            showme.find(".unauth-only").hide();
+        }
+        else
+        {
+            showme.find(".auth-only").hide();
+            showme.find(".unauth-only").show();
+        }
+
         app.showingPage(id);
         $.mobile.changePage("#" + id);
         //$.mobile.navigate("#" + id);
@@ -1672,9 +1691,10 @@ var app = {
         xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         xmlhttp.send(JSON.stringify(data));
     },
-    doSignIn: function() {
-        var email = $("#sign-in").find("[name=LoginName]").val();
-        var pwd = $("#sign-in").find("[name=Password]").val();
+    doSignIn: function(containerSelector, showPageOnSignIn) {
+        containerSelector = containerSelector || "#sign-in";
+        var email = $(containerSelector).find("[name=LoginName]").val();
+        var pwd = $(containerSelector).find("[name=Password]").val();
 
         var postMe = JSON.stringify({LoginName:email, Password:pwd});
 
@@ -1685,12 +1705,12 @@ var app = {
                 var storage = window.localStorage;
                 storage.setItem("TOKEN", token);   
                 storage.setItem("LOGIN", email); 
-                app.showPage("home");        
+                app.showPage(showPageOnSignIn || "home");        
                 app.notify("Signed in.");
             }
             else
             {
-                $("#sign-in").find("[name=Password]").val("");
+                $(containerSelector).find("[name=Password]").val("");
                 navigator.notification.alert(res.Message, null, "Error", "OK");
             }
         }, "json");
