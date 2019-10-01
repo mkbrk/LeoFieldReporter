@@ -38,8 +38,15 @@
 		<script src="js/waves.min.js"></script>
 		<script src="js/wow.min.js"></script>
 		<script src="js/nativedroid2.js"></script>
+
 		<script type="text/javascript" src="js/app.js"></script>
-		<script type="text/javascript" src="js/observing.js"></script>
+		<script type="text/javascript" src="js/resources.js"></script>
+		<script type="text/javascript" src="js/settings.js"></script>
+		<script type="text/javascript" src="js/latest.js"></script>
+		<script type="text/javascript" src="js/content.js"></script>
+		<script type="text/javascript" src="js/observation.js"></script>
+		<script type="text/javascript" src="js/observation.quick.js"></script>
+
 		<script type="text/javascript">
 
 		document.addEventListener('deviceready', function() {
@@ -81,7 +88,7 @@
 
 			app.latest.refresh();
 
-			app.pages.refresh();
+			app.content.refresh();
 
 			app.showPage("home");
 
@@ -208,7 +215,7 @@
 	<div class="photo-thumbnail" index="{{Index}}">
 		<img style="width:100%;" src="{{Data}}" />
 		<div><input type="text" placeholder="Caption" value="{{Caption}}"/></div>
-		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="javascript:app.observation.photos.remove({{Index}});"><i class="zmdi zmdi-delete"></i> @Button.Remove</a></div>
+		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="javascript:app.observation.photos.remove({{Index}});"><i class="zmdi zmdi-delete"></i> Remove</a></div>
 	</div>
 </script>
 
@@ -337,6 +344,10 @@
 		<div></div>
 		<img src="img/loading.gif" style="width:50px;" />
 	</div>
+
+	<div id="notification" class="animated" style="display:none; z-index:9999; box-shadow: 2px 2px 10px #777777; position:absolute; top:0px; left:0px;right:0px; margin-left:10%;margin-right:10%;padding:20px;text-align: center;background-color:white;border-bottom-left-radius: 20px;border-bottom-right-radius: 20px;">
+		<div></div>
+	</div>
 	
 
 	<div data-role="page" id="home">
@@ -354,10 +365,10 @@
 
 			<br><br>
 
-			<button type="button" onclick="app.observation.quick.start();" class="ui-btn clr-btn-deep-orange"><i class="zmdi zmdi-camera" style="font-size:xx-large;"></i><br> Quick Observation</button>
-				<div class="footnote">See something unusual? Use this to take a quick photo of it. You can always add more information before submitting it to LEO.</div>	
+			<button type="button" onclick="app.observation.quick.start();" class="ui-btn clr-btn-deep-orange"><i class="zmdi zmdi-camera" style="font-size:xx-large;"></i><br> Snap Observation</button>
+				<div class="footnote">On the go? Take a quick photo and add a brief description. You can always add more information before submitting your observation to LEO.</div>	
 			<br><br>
-				<button type="button" onclick="app.showPage('observation');app.observation.start();" class="ui-btn clr-btn-cyan"><i class="zmdi zmdi-plus" style="font-size:xx-large;"></i><br> Full Observation</button>
+				<button type="button" onclick="app.showPage('observation');app.observation.start();" class="ui-btn clr-btn-cyan"><i class="zmdi zmdi-plus" style="font-size:xx-large;"></i><br> Complete Observation</button>
 				<div class="footnote">Use this if you have a bit more time. You'll be able to fine-tune your observation before submitting to LEO.</div>
 			
 			
@@ -418,13 +429,12 @@
 
 			<div id="headline-page" class="observation-page" show-previous="false">
 				<h3>What's your headline?</h3>
-				<h5>This will be the title of your post</h5>
 				<input type="text" name="ObservationTitle" id="ObservationTitle" value="" />
 
 			</div>
 
 			<div id="date-page" class="observation-page" style="display: none;">
-				<h3>When did you make your observation?</h3>
+				<h3>What day did you make your observation?</h3>
 				<input type="date" name="ObservationDate" id="ObservationDate" value="" />
 			</div>
 
@@ -449,7 +459,7 @@
 
 			<div id="text-page" class="observation-page" style="display: none;">
 				<h3>Please describe your observation</h3>
-				<h5>Why is it unusual or significant?</h5>
+				<h5>Why is it unusual or significant? How is it impacting you or your community?</h5>
 				<textarea rows="10" style="min-height: 100px;" name="ObservationText" id="ObservationText"></textarea>
 
 				
@@ -466,7 +476,7 @@
 						<br>
 						<button type="button" onclick="app.observation.photos.add(Camera.PictureSourceType.CAMERA);" class="ui-btn ui-btn-icon-left clr-btn-purple"><i class="zmdi zmdi-camera-add"></i> Take Photo</button>
 						<br>
-						<button type="button" onclick="app.observation.photos.add(Camera.PictureSourceType.SAVEDPHOTOALBUM);" class="ui-btn ui-btn-icon-left clr-btn-blue"><i class="zmdi zmdi-collection-image"></i> Choose Photo</button>
+						<button type="button" onclick="app.observation.photos.add(Camera.PictureSourceType.SAVEDPHOTOALBUM);" class="ui-btn ui-btn-icon-left clr-btn-blue"><i class="zmdi zmdi-collection-image"></i> Choose from Your Photos</button>
 					</div>
 
 				
@@ -483,7 +493,7 @@
 						<br>
 						<button type="button" onclick="app.observation.videos.record();" class="ui-btn ui-btn-icon-left clr-btn-purple"><i class="zmdi zmdi-videocam"></i> Record Video</button>
 						<br>
-						<button type="button" onclick="app.observation.videos.choose();" class="ui-btn ui-btn-icon-left clr-btn-blue"><i class="zmdi zmdi-collection-video"></i> Choose Video</button>
+						<button type="button" onclick="app.observation.videos.choose();" class="ui-btn ui-btn-icon-left clr-btn-blue"><i class="zmdi zmdi-collection-video"></i> Choose from Your Videos</button>
 					</div>
 
 				
