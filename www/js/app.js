@@ -14,7 +14,7 @@ var app = {
             l.show();
 
             if(!hideAfterSeconds)
-                hideAfterSeconds = 4;
+                hideAfterSeconds = 3;
 
             window.setTimeout(function() {
                 app.notify(false);

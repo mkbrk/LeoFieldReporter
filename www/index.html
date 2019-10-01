@@ -46,6 +46,7 @@
 		<script type="text/javascript" src="js/content.js"></script>
 		<script type="text/javascript" src="js/observation.js"></script>
 		<script type="text/javascript" src="js/observation.quick.js"></script>
+		<script type="text/javascript" src="js/observation.sender.js"></script>
 
 		<script type="text/javascript">
 
@@ -91,6 +92,8 @@
 			app.content.refresh();
 
 			app.showPage("home");
+
+			app.observation.sender.startSendLoop();
 
 		}, false);
 
@@ -212,20 +215,29 @@
 </script>
 
 <script id="photo-thumbnail-template" type="template/mustache">
-	<div class="photo-thumbnail" index="{{Index}}">
+	<div class="photo-thumbnail" index="{{Index}}" style="margin-bottom:30px;margin-top:30px;">
 		<img style="width:100%;" src="{{Data}}" />
-		<div><input type="text" placeholder="Caption" value="{{Caption}}"/></div>
-		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="javascript:app.observation.photos.remove({{Index}});"><i class="zmdi zmdi-delete"></i> Remove</a></div>
+		<table style="width:100%;">
+			<tr>
+				<td><input type="text" placeholder="Add caption..." value="{{Caption}}" onchange="app.observation.photos.setCaption({{Index}},this.value);"/></td>
+				<td><a class="ui-btn ui-btn-inline" href="javascript:app.observation.photos.remove({{Index}});"><i class="zmdi zmdi-delete"></i></a></td>
+			</tr>
+		</table>
 	</div>
 </script>
 
 <script id="video-thumbnail-template" type="template/mustache">
-	<div class="video-thumbnail" index="{{Index}}">
+	<div class="video-thumbnail" index="{{Index}}"  style="margin-bottom:30px;margin-top:30px;">
 		<video style="width:100%;" controls>
 				<source src="{{Data}}" type="{{Type}}">
 		</video>
-		<div><input type="text" placeholder="Caption" value="{{Caption}}"/></div>
-		<div><a class="ui-btn ui-btn-icon-left clr-btn-red" href="javascript:app.observation.videos.remove({{Index}});"><i class="zmdi zmdi-delete"></i> Remove</a></div>
+
+		<table style="width:100%;">
+			<tr>
+				<td><input type="text" placeholder="Add caption..." value="{{Caption}}" onchange="app.observation.videos.setCaption({{Index}},this.value);"/></td>
+				<td><a class="ui-btn ui-btn-inline" href="javascript:app.observation.videos.remove({{Index}});"><i class="zmdi zmdi-delete"></i></a></td>
+			</tr>
+		</table>
 	</div>
 </script>
 
@@ -368,7 +380,7 @@
 			<button type="button" onclick="app.observation.quick.start();" class="ui-btn clr-btn-deep-orange"><i class="zmdi zmdi-camera" style="font-size:xx-large;"></i><br> Snap Observation</button>
 				<div class="footnote">On the go? Take a quick photo and add a brief description. You can always add more information before submitting your observation to LEO.</div>	
 			<br><br>
-				<button type="button" onclick="app.showPage('observation');app.observation.start();" class="ui-btn clr-btn-cyan"><i class="zmdi zmdi-plus" style="font-size:xx-large;"></i><br> Complete Observation</button>
+				<button type="button" onclick="app.observation.start();" class="ui-btn clr-btn-cyan"><i class="zmdi zmdi-plus" style="font-size:xx-large;"></i><br> Complete Observation</button>
 				<div class="footnote">Use this if you have a bit more time. You'll be able to fine-tune your observation before submitting to LEO.</div>
 			
 			
@@ -438,24 +450,27 @@
 				<input type="date" name="ObservationDate" id="ObservationDate" value="" />
 			</div>
 
-			<div id="location-page" class="observation-page" style="display: none;">
-				<h3>Where did you make your observation?</h3>
+			<!--
+				<div id="location-page" class="observation-page" style="display: none;">
+					<h3>Where did you make your observation?</h3>
 
-				<input type="hidden" name="LocationLat" />
-				<input type="hidden" name="LocationLng" />
+					<input type="hidden" name="LocationLat" />
+					<input type="hidden" name="LocationLng" />
 
-				<h3 class="nonefound"></h3>
+					<h3 class="nonefound"></h3>
 
-				<button type="button" onclick="app.observation.geolocation.getCurrent();" class="ui-btn  clr-btn-blue ui-btn-icon-left" >
-						<i class="zmdi zmdi-my-location"></i>
+					<button type="button" onclick="app.observation.geolocation.getCurrent();" class="ui-btn  clr-btn-blue ui-btn-icon-left" >
+							<i class="zmdi zmdi-my-location"></i>
 
-					@Button.GetCurrentLocation
-				</button>
+						@Button.GetCurrentLocation
+					</button>
 
-				<input type="text" name="LocationDescription" />
+					<input type="text" name="LocationDescription" />
 
-				
-			</div>
+					
+				</div>
+			-->
+
 
 			<div id="text-page" class="observation-page" style="display: none;">
 				<h3>Please describe your observation</h3>
@@ -482,22 +497,25 @@
 				
 			</div>
 
-			<div id="videos-page" class="observation-page" style="display: none;">
-				<h3>Add videos to support your observation</label>
+			<!--
+				<div id="videos-page" class="observation-page" style="display: none;">
+					<h3>Add videos to support your observation</label>
 
-					<div class="thumbnails">
+						<div class="thumbnails">
 
-					</div>
+						</div>
 
-					<div>
-						<br>
-						<button type="button" onclick="app.observation.videos.record();" class="ui-btn ui-btn-icon-left clr-btn-purple"><i class="zmdi zmdi-videocam"></i> Record Video</button>
-						<br>
-						<button type="button" onclick="app.observation.videos.choose();" class="ui-btn ui-btn-icon-left clr-btn-blue"><i class="zmdi zmdi-collection-video"></i> Choose from Your Videos</button>
-					</div>
+						<div>
+							<br>
+							<button type="button" onclick="app.observation.videos.record();" class="ui-btn ui-btn-icon-left clr-btn-purple"><i class="zmdi zmdi-videocam"></i> Record Video</button>
+							<br>
+							<button type="button" onclick="app.observation.videos.choose();" class="ui-btn ui-btn-icon-left clr-btn-blue"><i class="zmdi zmdi-collection-video"></i> Choose from Your Videos</button>
+						</div>
 
-				
-			</div>
+					
+				</div>
+
+			-->
 
 			<!--
 				<div id="audio-page" class="observation-page" style="display: none;">
@@ -563,7 +581,7 @@
 						<br><br>
 						<button type="button" onclick="app.observation.abandon();" class="ui-btn clr-btn-red  ui-btn-icon-left" >
 							<i class="zmdi zmdi-delete"></i>
-						Delete &amp; Start Over</button>
+						Delete Draft</button>
 						<div  class="footnote">Your draft will be deleted and you'll be able to start a new one.</div>
 
 					</div>
@@ -602,13 +620,10 @@
 						<a href='javascript:app.observation.saveAsDraft();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><i class='zmdi zmdi-save zmd-2x'></i><strong>Save Draft</strong></a>
 					</div>
 					<div class='col-xs-auto'>
-						<a href='javascript:app.observation.deleteDraft();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><i class='zmdi zmdi-delete zmd-2x'></i><strong>Delete Draft</strong></a>
+						<a href='javascript:app.observation.abandon();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><i class='zmdi zmdi-delete zmd-2x'></i><strong>Delete Draft</strong></a>
 					</div>
 					<div class='col-xs-auto'>
-						<a href='javascript:app.observation.dumpToConsole();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><strong>Debug</strong></a>
-					</div>
-					<div class='col-xs-auto'>
-						<a href="javascript:app.observation.send(app.observation.current._ID);" class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><strong>Send Now</strong></a>
+						<a href='javascript:app.observation.dumpToConsole();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><i class='zmdi zmdi-bug zmd-2x'></i><strong>Debug</strong></a>
 					</div>
 				</div>
 			</div>
@@ -677,16 +692,20 @@
 						Continue Editing
 					</button>
 					<div class="footnote">Add more information to your observation.</div>
+					
+					<!--
 					<br><br>
 					<button type="button" onclick="app.observation.quick.send();" class="ui-btn  clr-btn-green ui-btn-icon-left" >
 						<i class="zmdi zmdi-mail-send"></i>
 						Send Now
 					</button>
 					<div  class="footnote">Your observation will be submitted to the LEO Network.</div>
+					-->
+					
 					<br><br>
 					<button type="button" onclick="app.observation.quick.abandon();" class="ui-btn clr-btn-red  ui-btn-icon-left" >
 						<i class="zmdi zmdi-delete"></i>
-					Delete &amp; Start Over</button>
+					Delete Draft</button>
 					<div  class="footnote">Your draft will be deleted and you'll be able to start a new one.</div>
 
 				</div>
@@ -722,7 +741,7 @@
 				Go to Drafts Folder
 			</button>
 			<br>
-			<button type="button" onclick="app.observation.startOver();app.showPage('observation');" class="ui-btn  clr-btn-green ui-btn-icon-left" >
+			<button type="button" onclick="app.showPage('home');" class="ui-btn  clr-btn-green ui-btn-icon-left" >
 				<i class="zmdi zmdi-eye"></i>
 				Start new Observation
 			</button>
@@ -735,15 +754,17 @@
 		<nd2-include data-src="header.html"></nd2-include>
 	
 		<div role="main" class="ui-content">
-			<h3 class="nonefound">Your observation will be sent to the LEO Network</h3>
+			<h3 class="nonefound">Your observation is being sent to the LEO Network</h3>
 
 			<br>
 
+			<!--
 			<button type="button" onclick="app.showPage('outbox');" class="ui-btn  clr-btn-blue ui-btn-icon-left" >
 				<i class="zmdi zmdi-folder"></i>
 				Go to Your Outbox
 			</button>
 			<br>
+			-->
 			<button type="button" onclick="app.observation.startOver();app.showPage('observation');" class="ui-btn  clr-btn-green ui-btn-icon-left" >
 				<i class="zmdi zmdi-eye"></i>
 				Start new Observation
@@ -768,7 +789,7 @@
 		<div data-role="panel" id="outboxoptions" class="ui-bottom-sheet ui-bottom-sheet-list" data-animate="false" data-position='bottom' data-display="overlay">
 			<div class='row around-xs'>
 				<div class='col-xs-auto'>
-					<a href='javascript:app.observation.sendNext();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><i class='zmdi zmdi-mail-send zmd-2x'></i><strong>Send Now</strong></a>
+					<a href='javascript:app.observation.sender.maybeSend();' class='ui-bottom-sheet-link ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button' data-ajax='false'><i class='zmdi zmdi-mail-send zmd-2x'></i><strong>Send Now</strong></a>
 				</div>
 			</div>
 		</div>
@@ -877,8 +898,13 @@
 
 			<ul data-role="listview" data-icon="false">
 				<li><a href="javascript:app.showPage('drafts');">@Button.Drafts <span class="ui-li-count" for="drafts"></span></a></li>
+
+				
+
+				<!--
 				<li><a href="javascript:app.showPage('outbox');">@Button.Outbox <span class="ui-li-count" for="outbox"></span></a></li>
 				<li><a href="javascript:app.showPage('sent');">@Button.Sent <span class="ui-li-count" for="sent"></span></a></li>
+				-->
 			</ul>
 			<hr/>
 

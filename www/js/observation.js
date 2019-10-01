@@ -134,12 +134,29 @@ app.observation = {
         }
 
     },
+    //this one gets the geolocation and adds it to the observation
+    //hence the callback
+    getDefaultObservation : function(callback) {
+        var obs = this.defaultObservation();
+        if(app.observation.geolocation.supported())
+        {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                obs.LocationLat = position.coords.latitude;
+                obs.LocationLng = position.coords.longitude;
+                if(callback)
+                    callback(obs);
+            }, function(error) {
+                if(callback)
+                    callback(obs);
+            });
+        }
+    },
     defaultObservation : function() {
         return {
             ObservationID: null, //will be filled in once it is saved to server
             ObservationTitle: null,
             ObservationDate: moment().format("YYYY-MM-DD"),
-            ObservationDescription: null,
+            ObservationText: null,
             LocationLat: null,
             LocationLng: null,
             LocationDescription : null,
@@ -161,8 +178,9 @@ app.observation = {
         navigator.notification.confirm("Are you sure?", function(btn) {
             if(btn == 1)
             {
-                self.startOver();
-                app.notify("Deleted your observation.");
+                self.remove(self.current._ID);
+                app.showPage("home");
+                app.notify("Deleted your Draft.");
             }
         });
     },
@@ -234,6 +252,7 @@ app.observation = {
         //takes the current observation and stashes it in a draft
         app.observation.setStatus("D"); //saves internally
         app.showPage("saved-draft-confirmation");
+        app.notify("Saved Draft.");
     },
     edit : function(obs) {
         this.setCurrent(obs || this.defaultObservation());
@@ -242,13 +261,20 @@ app.observation = {
     start : function() {
         if(this.hasUnsavedDraft())
         {
-            this.edit(this.getUnsavedDraft());
-            this.show("continue-page");
+            app.observation.edit(this.getUnsavedDraft());
+            app.observation.show("continue-page");
+            app.showPage("observation");
         }
         else
         {
-            this.edit();
-            this.show("headline-page");
+            this.getDefaultObservation(
+                function(o) {
+                    console.log("default obs: " + JSON.stringify(o));
+                    app.observation.edit(o);
+                    app.observation.show("headline-page");
+                    app.showPage("observation");
+                }
+            );
         }
     },
     dumpToConsole : function() {
@@ -257,177 +283,7 @@ app.observation = {
             console.log(JSON.stringify(this.current));
         }
     },
-    sendNext : function() {
-        var ob = app.observation.outbox.list();
-        for(var i = 0; i < ob.length; i++)
-        {
-            if(ob[i]._STATUS == "W") //waiting to send
-            {
-                this.send(ob[i]._ID);
-            }
-        }
-    },
-    //sends a single one by key
-    send : function (key)
-    {
-        if (app.isSignedIn() && navigator.onLine) {
-            var obj = app.observation.outbox.get(key);
-            if(obj && obj != null)
-            {
-                if(obj._STATUS == "P" || app.observation.setStatus("P", obj)) //already sending or can send
-                {
-                    obj._ERROR = null; //clear this out so that it can be reset if an error happens
-                    app.observation.save(obj);
-
-                    if(obj.ObservationID && obj.ObservationID != null)
-                    {
-                        console.log("Already sent observation...sending attachments now");
-                        //if already have the ObservationID - just save the attachments
-                        app.observation.sendAttachments(obj);
-                    }
-                    else
-                    {
-                        console.log("Sending observation.");
-                        //otherwise, need to save this to the server first
-                        $.ajax({
-                            url: app.getRemoteUrl("/en/fieldreporter/send"),
-                            method: "POST",
-                            contentType: 'application/json; charset=utf-8',
-                            dataType: "json",
-                            data: JSON.stringify(obj),
-                            headers: {
-                                "x-leo-header": app.getToken()
-                            }, 
-                            success : function (res) {
-                                if(res.Status == "OK")
-                                {
-                                    console.log("Saved observation with ID " + res.ObservationID);
-                                    obj.ObservationID = res.ObservationID;
-                                    app.observation.save(obj);
-                                    app.observation.sendAttachments(obj);
-                                }
-                                else
-                                {
-                                    console.log("error from the server: " + res.Message);
-                                    obj._ERROR = res.Message;   
-                                    app.observation.setStatus("E", obj);
-                                }
-                            },
-                            error : function(jqr, status) {
-                                console.log("error at the network level:" + status);
-                                obj._ERROR = status;   
-                                app.observation.setStatus("E", obj);
-                            }
-                        });
-                    }
-                }
-                else    
-                    console.log("Can't be sent in that state - must be in status P or W.");   
-            }
-            else
-                console.log("Invalid object key.");   
-        }
-        else
-        {
-            console.log("You are either not online or not signed in.");   
-        }
-    },
-    sendAttachments : function(obj) {
-        if(navigator.onLine)
-        {
-            if(obj && obj != null)
-            {
-                if(obj._STATUS == "P") //"Sending"
-                {
-                    if(obj.ObservationID && obj.ObservationID != null)
-                    {
-                        console.log("Sending photos");
-                        var sendMe = [];
-                        
-                        for(var i = 0; i < obj.Photos.length; i++)
-                        {
-                            if(!obj.Photos[i].AttachmentID || obj.Photos[i].AttachmentID == null)
-                                sendMe.push(obj.Photos[i]);
-                        }
-
-                        for(var i = 0; i < obj.Videos.length; i++)
-                        {
-                            if(!obj.Videos[i].AttachmentID || obj.Videos[i].AttachmentID == null)
-                                sendMe.push(obj.Videos[i]);
-                        }
-
-
-                        for(var i = 0; i < sendMe.length; i++)
-                        {
-                            var clone = JSON.parse(JSON.stringify(sendMe[i]));
-                            window.resolveLocalFileSystemURL(clone.Data, function(fileEntry) {
-                                fileEntry.file(function(file) {
-                                    console.log("About to read file: " + file.name);
-                                    console.log(file.size);
-                                    var reader = new FileReader();
-                                
-                                    reader.onloadend = function() {
-                                        console.log("Read file, ready to send it");
-
-                                        clone.Data = this.result;
-
-                                        $.ajax({
-                                            url: app.getRemoteUrl("/en/fieldreporter/attach/" + obj.ObservationID),
-                                            method: "POST",
-                                            contentType: 'application/json; charset=utf-8',
-                                            dataType: "json",
-                                            data: JSON.stringify(clone),
-
-                                            success : function (res) {
-                                                console.log("Success sending attachment");
-                                                console.log(JSON.stringify(res));
-
-                                                if(res.Status == "OK")
-                                                {
-                                                    sendMe[i]._STATUS = "sent";
-                                                    sendMe[i].AttachmentID = res.AttachmentID;
-                                                }
-                                                else
-                                                {
-                                                    sendMe[i]._STATUS = "error";
-                                                    sendMe[i]._MESSAGE = res.Message;   
-                                                }
-                                                app.observation.save(obj);
-                                            },
-                                            error : function(jqr, status) {
-                                                console.log(status);
-                                                sendMe[i]._STATUS = "error";
-                                                sendMe[i]._MESSAGE = status;   
-                                                app.observation.save(obj);
-                                            }
-                                        });
-                                    };
-                                
-                                    reader.readAsDataURL(file);
-                                    }, function(err) {
-                                        console.log(err);
-                                    });
-                            });
-                        }
-                    }
-                    else
-                    {
-                        console.log("ObservationID not present...can't send attachments.");
-                    }
-                }
-                else
-                {
-                    console.log("Can only send attachments while sending is in progress...");
-                }
-            }
-            else
-                console.log("No data provided for observation.");
-        }
-        else
-        {
-            console.log("Not online.")
-        }
-    },
+    
     addAttachmentData : function(att) {
 
     },
@@ -467,6 +323,7 @@ app.observation = {
                 app.observation.setStatus("W");
                 app.observation.startOver();
                 app.showPage("sent-draft-confirmation");
+                app.observation.sender.maybeSend(); //this triggers a send immediately
             }
         }
     },
@@ -527,6 +384,7 @@ app.observation = {
         this.setTitle();
     },
     geolocation : {
+        
         supported : function() {
             return ("geolocation" in navigator);
         },
@@ -806,6 +664,14 @@ app.observation = {
             }, opts);
         },
 
+        setCaption : function( i, caption) {
+            var self = this;
+            if(app.observation.current.Photos.length > i)
+            {
+                app.observation.current.Photos[i].Caption = caption;
+                app.observation.save();
+            }
+        },
         remove : function(i) {
             //TODO: might want to cleanup the cache library...
             var self = this;
@@ -893,7 +759,14 @@ app.observation = {
                 app.notify(errorMsg);
             }, opts);
         },
-
+        setCaption : function( i, caption) {
+            var self = this;
+            if(app.observation.current.Videos.length > i)
+            {
+                app.observation.current.Videos[i].Caption = caption;
+                app.observation.save();
+            }
+        },
         remove : function(i) {
             var self = this;
             //TODO: might want to cleanup cached files

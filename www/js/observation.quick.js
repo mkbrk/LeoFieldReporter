@@ -76,6 +76,7 @@ app.observation.quick = {
             app.observation.setStatus("D", obj); //saves internally as draft
         }
 
+        app.notify("Saved Draft.");
         app.showPage('home');
     },
     continueEditing : function() {
@@ -97,13 +98,15 @@ app.observation.quick = {
         if(obj != null)
         {
             app.observation.setStatus("W", obj); //saves internally - W = "Waiting to send"
-            app.notify("Your observation was sent.");
+            app.observation.startOver();
+            app.showPage("sent-draft-confirmation");
+            app.observation.sender.maybeSend();
         }
         else
         {
             navigator.notification.alert("No current observation.", null, "Error", "OK");
+            app.showPage("home");
         }
-        app.showPage("home");
     },
     abandon : function() {
         app.observation.remove("QUICK");
