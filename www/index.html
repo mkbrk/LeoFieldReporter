@@ -42,7 +42,7 @@
 		<script type="text/javascript" src="js/app.js"></script>
 		<script type="text/javascript" src="js/resources.js"></script>
 		<script type="text/javascript" src="js/settings.js"></script>
-		<script type="text/javascript" src="js/latest.js"></script>
+		<script type="text/javascript" src="js/posts.js"></script>
 		<script type="text/javascript" src="js/content.js"></script>
 		<script type="text/javascript" src="js/observation.js"></script>
 		<script type="text/javascript" src="js/observation.quick.js"></script>
@@ -68,6 +68,8 @@
 
 			app.settings.load();
 
+			app.geolocation.initialize();
+
 			app.resources.load(function() {
 				//do token replacements here
 				app.resources.replaceAll(document.getElementById("__ROOT"));
@@ -87,7 +89,7 @@
 			app.observation.categories.refresh();
 			app.observation.initialize();
 
-			app.latest.refresh();
+			app.posts.latest.refresh();
 
 			app.content.refresh();
 
@@ -271,12 +273,7 @@
 	<div class="nd2-card ">
 
 		{{#Thumbnail}}
-			{{#MapThumbnail}}
-				<div style="float:right;margin-top:90px;margin-right:10px;width:100px;background-size:cover !important;background-image:url({{MapThumbnail}});background-repeat:no-repeat;height:100px;background-color:red;">
-					&nbsp;
-				</div>
-			{{/MapThumbnail}}
-		
+			
 			<div style="width:100%;background-size:cover !important;background-image:url({{Thumbnail}});background-repeat:no-repeat;height:200px;">
 				&nbsp;
 			</div>
@@ -297,9 +294,25 @@
 
 			<div class="card-action">
 				<div class="row between-xs">
-					<div class="col-xs-12 align-right">
+					<div class="col-xs-4">
+						{{#MapThumbnail}}
+							<div style="width:100px;background-size:cover !important;background-image:url({{MapThumbnail}});background-repeat:no-repeat;height:100px;background-color:transparent;">
+								&nbsp;
+							</div>
+						{{/MapThumbnail}}
+					</div>
+					<div class="col-xs-8 align-left">
 						<div class="box">
-							<a href="#" onclick="window.open('https://www.leonetwork.org/posts/show/{{ObservationID}}', '_system');return false;" class="ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button">Read More on <span style="color:#03A9F4;">LEO Network</span></a>
+							<a href="#" onclick="window.open('https://www.leonetwork.org/posts/show/{{ObservationID}}', '_system');return false;" class="ui-btn ui-btn-inline waves-effect waves-button waves-effect waves-button">Read More on 
+								<br>
+								<span style="color:#03A9F4;">
+									{{#SourceName}}
+										{{SourceName}}
+									{{/SourceName}}
+									{{^SourceName}}
+										LEO Network
+									{{/SourceName}}
+								</span> <i class="zmdi zmdi-chevron-right"></i></a>
 						</div>
 					</div>
 				</div>
@@ -395,13 +408,28 @@
 		<nd2-include data-src="header.html"></nd2-include>
 	
 		<div role="main" class="ui-content">
-			<div style="color:gray;">Recent Posts from Members</div>
+			<table style="width:100%;">
+				<tr>
+					
+					<td style="vertical-align: bottom;">
+						<select onchange="app.posts.setMode(this.value);">
+							<option value="recent">Recent Posts</option>
+							<option value="nearby">Near You</option>
+							<option value="latitude">At Your Latitude</option>
+						</select>
+					</td>
+					<td style="vertical-align: bottom;"><input type="text" style="margin:0px;" onchange="app.posts.search(this.value);" placeholder="Search..." /></td>
+				</tr>
+			</table>
+			<div>
+
+			</div>
 			
 			<div id="latest"></div>
 
-			<div>
+			<h3 style="margin-top:30px;text-align: center;">
 					Visit <a href="#" onclick="window.open('https://www.leonetwork.org', '_system');return false;" >leonetwork.org <i class="zmdi zmdi-open-in-new"></i></a> for thousands of additional observations of environmental change.  
-			</div>
+			</h3>
 		</div>
 	
 	</div>
@@ -909,7 +937,7 @@
 			<hr/>
 
 			<ul data-role="listview" data-icon="false">
-				<li><a href="javascript:app.showPage('recent_posts');">@Button.RecentPosts</a></li>
+				<li><a href="javascript:app.showPage('recent_posts');">The Latest Headlines</a></li>
 			</ul>
 
 			<ul data-role="listview" data-icon="false" id="pages-list">

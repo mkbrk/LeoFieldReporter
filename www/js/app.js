@@ -1,5 +1,24 @@
 
 var app = {
+    geolocation : {
+        //initialize to Anchorage
+        latitude : 61.217,
+        longitude : -150.095,
+        supported : function() {
+            return ("geolocation" in navigator);
+        },
+        initialize : function() {
+            var self = this;
+            if(app.geolocation.supported())
+            {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    app.geolocation.latitude = position.coords.latitude;
+                    app.geolocation.longitude = position.coords.longitude;
+                }, function(error) {
+                });
+            }
+        }
+    },
     notify : function(message, hideAfterSeconds) {
         var l = $("#notification");
         if(message == false)
