@@ -66,6 +66,8 @@
 				console.log( data.state.hash )
 			});
 
+			app.content.refresh();
+
 			app.settings.load();
 
 			app.geolocation.initialize();
@@ -91,9 +93,11 @@
 
 			app.posts.latest.refresh();
 
-			app.content.refresh();
+			//this is just to let the previous one finish
+			window.setTimeout(function() {
+				app.showPage("welcome");
+			}, 500);
 
-			app.showPage("home");
 
 			app.observation.sender.startSendLoop();
 
@@ -127,8 +131,6 @@
 
 			$("body>[data-role='panel'] ul[data-role='listview']").listview();
 
-
-			
 		})
 
 		</script>
@@ -273,6 +275,16 @@
 	</div>
 </script>
 
+<script id="welcome-template" type="text/template">
+	<div>
+		{{#Attachments}}
+			<div class="big-photo" style="display:block;position:absolute;top:0px;left:0px;right:0px;bottom:0px;background-size:cover;background-position:center center;background-repeat:no-repeat;background-image:url({{Base64Data}})">
+				<div style="color:white;position:absolute;left:5px;bottom:5px;font-size:larger;">{{{CaptionHtml}}}</div>
+			</div>
+		{{/Attachments}}
+	</div>
+</script>
+
 <script id="post-card" type="template/mustache">
 
 	<div class="nd2-card ">
@@ -401,6 +413,20 @@
 				<button type="button" onclick="app.observation.start();" class="ui-btn clr-btn-cyan"><i class="zmdi zmdi-plus" style="font-size:xx-large;"></i><br> Complete Observation</button>
 				<div class="footnote">Use this if you have a bit more time. You'll be able to fine-tune your observation before submitting to LEO.</div>
 			
+			
+		</div>
+
+
+	
+	</div>
+
+	<div data-role="page" id="welcome">
+
+		<nd2-include data-src="header.html"></nd2-include>
+	
+		<div role="main" class="ui-content" style="text-align: center;">
+			
+			nice photo here
 			
 		</div>
 
@@ -920,7 +946,7 @@
 	<!--menu-->
 	<div data-role="panel" id="leftpanel" data-display="overlay" data-position-fixed="true" data-theme="a" >
 			<div style="text-align:center;">
-				<a href="javascript:app.showPage('home');"><img style="max-width:150px;" src="img/icon400x400.png" /></a>
+				<a href="javascript:app.showPage('welcome');"><img style="max-width:150px;" src="img/icon400x400.png" /></a>
 				<h3>@Heading.LocalEnvironmentalObserverNetwork</h3>
 
 				<button type="button" class="ui-btn clr-btn-purple" onclick="app.showPage('home');">@Button.MakeObservation</button>
@@ -932,8 +958,6 @@
 			<ul data-role="listview" data-icon="false">
 				<li><a href="javascript:app.showPage('drafts');">@Button.Drafts <span class="ui-li-count" for="drafts"></span></a></li>
 
-				
-
 				<!--
 				<li><a href="javascript:app.showPage('outbox');">@Button.Outbox <span class="ui-li-count" for="outbox"></span></a></li>
 				<li><a href="javascript:app.showPage('sent');">@Button.Sent <span class="ui-li-count" for="sent"></span></a></li>
@@ -942,7 +966,7 @@
 			<hr/>
 
 			<ul data-role="listview" data-icon="false">
-				<li><a href="javascript:app.showPage('recent_posts');">The Latest Headlines</a></li>
+				<li><a href="javascript:app.showPage('recent_posts');">Latest Headlines</a></li>
 			</ul>
 
 			<ul data-role="listview" data-icon="false" id="pages-list">

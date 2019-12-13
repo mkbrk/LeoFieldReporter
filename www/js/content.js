@@ -60,6 +60,7 @@ app.content = {
             var pages = "";
             var culture = app.settings.get("Language", "en");
             var tmp = $("#article-template").html();
+            var wtmp = $("#welcome-template").html();
             Mustache.parse(tmp);
 
             for(var i = 0; i < res.length; i++)
@@ -75,8 +76,17 @@ app.content = {
                 }
                 if(localization == null)
                 {
-                    h +=  "<li><a href=\"javascript:app.content.show('" + res[i].ArticleID + "');\">" + res[i].TitleHtml + "</a></li>";
-                    pages += Mustache.render(tmp, res[i]);
+                    if(res[i].Title != "Welcome")
+                    {
+                        h +=  "<li><a href=\"javascript:app.content.show('" + res[i].ArticleID + "');\">" + res[i].TitleHtml + "</a></li>";
+                        pages += Mustache.render(tmp, res[i]);    
+                    }
+                    else
+                    {
+                        res[i].Attachments.sort(() => Math.random() - 0.5);
+                        var welcome = Mustache.render(wtmp, res[i]);
+                        $("#welcome .ui-content").html(welcome);
+                    }
                 }
                 else
                 {
@@ -96,8 +106,17 @@ app.content = {
                             localization.Attachments[j].Base64Data = raw;
                         }
                     }
-                    h +=  "<li><a href=\"javascript:app.content.show('" + res[i].ArticleID + "');\">" + localization.TitleHtml + "</a></li>";
-                    pages += Mustache.render(tmp, localization);
+                    if(res[i].Title != "Welcome")
+                    {
+                        h +=  "<li><a href=\"javascript:app.content.show('" + res[i].ArticleID + "');\">" + localization.TitleHtml + "</a></li>";
+                        pages += Mustache.render(tmp, localization);
+                    }
+                    else
+                    {
+                        localization.Attachments.sort(() => Math.random() - 0.5);
+                        var welcome = Mustache.render(wtmp, localization);
+                        $("#welcome .ui-content").html(welcome);
+                    }
                 }
             }
 

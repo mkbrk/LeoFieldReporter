@@ -172,6 +172,17 @@ var app = {
         else if(id == "observation")
         {
         }
+        else if(id == "welcome")
+        {
+            var photos = $("#welcome div.big-photo");
+            photos.hide();
+            var num = photos.length;
+            if(num > 0)
+            {
+                var idx = Math.floor(Math.random() * (num - 1 - 0 + 1)) + 0;
+                photos.eq(idx).show();
+            }
+        }
     },
     
     getRemoteUrl : function(path) {
