@@ -50,92 +50,114 @@
 
 		<script type="text/javascript">
 
-		document.addEventListener('deviceready', function() {
-            //start-up code in here...
-            $.support.cors = true;
-			$.mobile.allowCrossDomainPages = true;	
-			$.mobile.hashListeningEnabled = false;
-			$.mobile.pushStateEnabled = false;
-			$.mobile.changePage.defaults.changeHash = false;
+			function init() {
+				//start-up code in here...
+				$.support.cors = true;
+				$.mobile.allowCrossDomainPages = true;	
+				$.mobile.hashListeningEnabled = false;
+				$.mobile.pushStateEnabled = false;
+				$.mobile.changePage.defaults.changeHash = false;
 
 
-			$( window ).on( "navigate", function( event, data ) {
-				console.log( data.state.info );
-				console.log( data.state.direction )
-				console.log( data.state.url )
-				console.log( data.state.hash )
-			});
+				$( window ).on( "navigate", function( event, data ) {
+					console.log( data.state.info );
+					console.log( data.state.direction )
+					console.log( data.state.url )
+					console.log( data.state.hash )
+				});
 
-			app.content.refresh();
+				app.content.refresh();
 
-			app.settings.load();
+				app.settings.load();
 
-			app.geolocation.initialize();
+				app.geolocation.initialize();
 
-			app.resources.load(function() {
-				//do token replacements here
-				app.resources.replaceAll(document.getElementById("__ROOT"));
-				var languages = app.resources.getAll("Language.Name");
-				var dd = $("#language_dropdown");
-				var h = "";
-				for(var i = 0; i < languages.length; i++)
+				app.resources.load(function() {
+					//do token replacements here
+					app.resources.replaceAll(document.getElementById("__ROOT"));
+					var languages = app.resources.getAll("Language.Name");
+					var dd = $("#language_dropdown");
+					var h = "";
+					for(var i = 0; i < languages.length; i++)
+					{
+						h += "<option value='" + languages[i][0] + "'>" + languages[i][1] + "</option>";
+					}
+
+					dd.html(h);
+				});
+
+				app.settings.scatter();
+
+				app.observation.categories.refresh();
+				app.observation.initialize();
+
+				app.posts.latest.refresh();
+
+				//this is just to let the previous one finish
+				window.setTimeout(function() {
+					app.showPage("welcome");
+				}, 500);
+
+
+				app.observation.sender.startSendLoop();
+
+				//need to explicitly activate these since they are outside of a page
+				$("body>[data-role='panel']" ).panel( {beforeopen: function(ev, ui) {
+						//this is the chance to refresh the counts
+						//and other things on the panel
+						$(this).find(".ui-li-count").each(function() {
+							$(this).html(app.observation[$(this).attr("for")].count());
+						});
+
+						if(app.isSignedIn())
+						{
+							$("#sign-in-link").hide();
+							$("#sign-out-link").show();
+							$("#signed-in-as").show().html(app.signedInAs());
+						}
+						else
+						{
+							$("#sign-in-link").show();
+							$("#sign-out-link").hide();
+							$("#signed-in-as").hide();
+						}
+
+					}
+				});
+
+				$("body>[data-role='panel'] ul[data-role='listview']").listview();	
+				//$("#pages-list").listview("refresh");				
+				
+			}
+			//should allow this to run on the web as well as in cordova
+			$(function() {
+				if ("cordova" in window) 
 				{
-					h += "<option value='" + languages[i][0] + "'>" + languages[i][1] + "</option>";
+					document.addEventListener('deviceready', init, false);
+				} 
+				else 
+				{
+					init();
 				}
-
-				dd.html(h);
-			});
-
-			app.settings.scatter();
-
-			app.observation.categories.refresh();
-			app.observation.initialize();
-
-			app.posts.latest.refresh();
-
-			//this is just to let the previous one finish
-			window.setTimeout(function() {
-				app.showPage("welcome");
-			}, 500);
-
-
-			app.observation.sender.startSendLoop();
-
-		}, false);
-
+			})
 		
-		$(function() {			
-			//need to explicitly activate these since they are outside of a page
-			$("body>[data-role='panel']" ).panel( {beforeopen: function(ev, ui) {
-					//this is the chance to refresh the counts
-					//and other things on the panel
-					$(this).find(".ui-li-count").each(function() {
-						$(this).html(app.observation[$(this).attr("for")].count());
-					});
-
-					if(app.isSignedIn())
-					{
-						$("#sign-in-link").hide();
-						$("#sign-out-link").show();
-						$("#signed-in-as").show().html(app.signedInAs());
-					}
-					else
-					{
-						$("#sign-in-link").show();
-						$("#sign-out-link").hide();
-						$("#signed-in-as").hide();
-					}
-
-				}
-			});
-
-			$("body>[data-role='panel'] ul[data-role='listview']").listview();
-
-		})
 
 		</script>
 
 		<style>
+
+			#leftpanel div.menu-item 
+			{
+				margin-bottom:8px;
+			}
+
+			#leftpanel div.menu-item a
+			{
+				color:black;
+				text-decoration: none;
+			}
+
+
 			/*attempting to get around some statusbar stuff on ios*/
 			.ui-header {
 				padding-top:12px;
@@ -275,16 +297,6 @@
 	</div>
 </script>
 
-<script id="welcome-template" type="text/template">
-	<div>
-		{{#Attachments}}
-			<div class="big-photo" style="display:block;position:absolute;top:0px;left:0px;right:0px;bottom:0px;background-size:cover;background-position:center center;background-repeat:no-repeat;background-image:url({{Base64Data}})">
-				<div style="color:white;position:absolute;left:5px;bottom:5px;font-size:larger;">{{{CaptionHtml}}}</div>
-			</div>
-		{{/Attachments}}
-	</div>
-</script>
-
 <script id="post-card" type="template/mustache">
 
 	<div class="nd2-card ">
@@ -338,6 +350,14 @@
 		</div>
 
 
+</script>
+
+<script id="mosaic-template" type="template/mustache">
+	{{#Thumbnail}}
+		<div style="display:inline-block;width:{{MosaicWidth}}px;height:{{MosaicHeight}}px;margin:0px;background-size:cover !important;background-image:url({{Thumbnail}});background-repeat:no-repeat;">
+			&nbsp;
+		</div>
+	{{/Thumbnail}}
 </script>
 
 <script id="drafts-template" type="template/mustache">
@@ -426,8 +446,14 @@
 	
 		<div role="main" class="ui-content" style="text-align: center;">
 			
-			nice photo here
+			<div id="photo-mosaic" style="opacity:0.5;text-align:center;position:absolute;top:0px;left:0px;right:0px;bottom:0px;overflow:hidden;"></div>
 			
+			<div style="left:10%;right:10%;text-align:center;position: absolute;top: 50%;transform: translateY(-50%);">
+				<button type="button" onclick="app.showPage('home');" class="ui-btn clr-btn-light-green" ><i class="zmdi zmdi-eye" style="font-size:xx-large"></i><br> Add Your Observation</button>
+				<div style="margin-top:40px;"><a style="text-decoration: none;border-radius:10px;color:White;background-color: gray;padding:6px;opacity:0.5;box-shadow: 0 0 10px 10px gray;" href="javascript:app.showPage('recent_posts');">Or see recent observations</a></div>
+				
+			</div>
+
 		</div>
 
 
@@ -949,33 +975,26 @@
 				<a href="javascript:app.showPage('welcome');"><img style="max-width:150px;" src="img/icon400x400.png" /></a>
 				<h3>@Heading.LocalEnvironmentalObserverNetwork</h3>
 
-				<button type="button" class="ui-btn clr-btn-purple" onclick="app.showPage('home');">@Button.MakeObservation</button>
+				<button type="button" class="ui-btn clr-btn-purple" onclick="app.showPage('home');">Add Your Observation</button>
 
 			</div>
 			
 			<hr/>
 
-			<ul data-role="listview" data-icon="false">
-				<li><a href="javascript:app.showPage('drafts');">@Button.Drafts <span class="ui-li-count" for="drafts"></span></a></li>
+			<div class="menu-item"><a href="javascript:app.showPage('drafts');">@Button.Drafts <span class="ui-li-count" for="drafts"></span></a></div>
 
-				<!--
-				<li><a href="javascript:app.showPage('outbox');">@Button.Outbox <span class="ui-li-count" for="outbox"></span></a></li>
-				<li><a href="javascript:app.showPage('sent');">@Button.Sent <span class="ui-li-count" for="sent"></span></a></li>
-				-->
-			</ul>
 			<hr/>
 
-			<ul data-role="listview" data-icon="false">
-				<li><a href="javascript:app.showPage('recent_posts');">Latest Headlines</a></li>
-			</ul>
+			<div class="menu-item"><a href="javascript:app.showPage('recent_posts');">Latest Headlines</a></div>
 
-			<ul data-role="listview" data-icon="false" id="pages-list">
+			<div id="pages-list">
 
-			</ul>
+			</div>
 
-			<ul data-role="listview" data-icon="false">
-				<li><a href="javascript:app.showPage('settings');">@Button.Settings</a></li>
-			</ul>
+			<div class="menu-item">
+				<a href="javascript:app.showPage('settings');">@Button.Settings</a>
+			</div>
+
 			<br/>
 			<div id="signed-in-as" style="text-align: center;color:silver;font-style:italic;"></div>
 			<button type="button" onclick="app.signIn();" id="sign-in-link" class="ui-btn clr-btn-blue">@Button.SignIn</button>
