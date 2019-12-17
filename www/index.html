@@ -105,7 +105,7 @@
 				$("body>[data-role='panel']" ).panel( {beforeopen: function(ev, ui) {
 						//this is the chance to refresh the counts
 						//and other things on the panel
-						$(this).find(".ui-li-count").each(function() {
+						$(this).find(".count").each(function() {
 							$(this).html(app.observation[$(this).attr("for")].count());
 						});
 
@@ -224,6 +224,15 @@
 				text-transform: uppercase;
 				font-size:x-small;
 				text-shadow: none !important;
+			}
+
+			.count {
+				background-color:silver;
+				color:black;
+				font-weight: bold;
+				border-radius: 4px;
+				padding:4px;
+				margin-left: 20px;
 			}
 		</style>
     <title>LEO Field Reporter</title>
@@ -450,7 +459,9 @@
 			
 			<div style="left:10%;right:10%;text-align:center;position: absolute;top: 50%;transform: translateY(-50%);">
 				<button type="button" onclick="app.showPage('home');" class="ui-btn clr-btn-light-green" ><i class="zmdi zmdi-eye" style="font-size:xx-large"></i><br> Add Your Observation</button>
+				<!--
 				<div style="margin-top:40px;"><a style="text-decoration: none;border-radius:10px;color:White;background-color: gray;padding:6px;opacity:0.5;box-shadow: 0 0 10px 10px gray;" href="javascript:app.showPage('recent_posts');">Or see recent observations</a></div>
+				-->
 				
 			</div>
 
@@ -582,25 +593,25 @@
 				
 			</div>
 
-			<!--
-				<div id="videos-page" class="observation-page" style="display: none;">
-					<h3>Add videos to support your observation</label>
+			
+			<div id="videos-page" class="observation-page" style="display: none;">
+				<h3>Add videos to support your observation</label>
 
-						<div class="thumbnails">
+					<div class="thumbnails">
 
-						</div>
+					</div>
 
-						<div>
-							<br>
-							<button type="button" onclick="app.observation.videos.record();" class="ui-btn ui-btn-icon-left clr-btn-purple"><i class="zmdi zmdi-videocam"></i> Record Video</button>
-							<br>
-							<button type="button" onclick="app.observation.videos.choose();" class="ui-btn ui-btn-icon-left clr-btn-blue"><i class="zmdi zmdi-collection-video"></i> Choose from Your Videos</button>
-						</div>
+					<div>
+						<br>
+						<button type="button" onclick="app.observation.videos.record();" class="ui-btn ui-btn-icon-left clr-btn-purple"><i class="zmdi zmdi-videocam"></i> Record Video</button>
+						<br>
+						<button type="button" onclick="app.observation.videos.choose();" class="ui-btn ui-btn-icon-left clr-btn-blue"><i class="zmdi zmdi-collection-video"></i> Choose from Your Videos</button>
+					</div>
 
-					
-				</div>
+				
+			</div>
 
-			-->
+			
 
 			<!--
 				<div id="audio-page" class="observation-page" style="display: none;">
@@ -975,13 +986,13 @@
 				<a href="javascript:app.showPage('welcome');"><img style="max-width:150px;" src="img/icon400x400.png" /></a>
 				<h3>@Heading.LocalEnvironmentalObserverNetwork</h3>
 
-				<button type="button" class="ui-btn clr-btn-purple" onclick="app.showPage('home');">Add Your Observation</button>
+				<button type="button" style="background-color:#8BC34A;color:White;" class="ui-btn clr-btn-light-green" onclick="app.showPage('home');"><i class="zmdi zmdi-eye" style="font-size:xx-large"></i><br> Add Your Observation</button>
 
 			</div>
 			
 			<hr/>
 
-			<div class="menu-item"><a href="javascript:app.showPage('drafts');">@Button.Drafts <span class="ui-li-count" for="drafts"></span></a></div>
+			<div class="menu-item"><a href="javascript:app.showPage('drafts');">@Button.Drafts <span class="count" for="drafts"></span></a></div>
 
 			<hr/>
 
