@@ -2,8 +2,9 @@
 
 Getting a Phonegap project to work is difficult. Here are some of the tricks I used to get this one working.
 
-- Make sure Node and NPM are up to date. 
-- Make sure Phonegap and Cordova are up to date via NPM.
+- Make sure Node and NPM are up to date. (sudo npm install -g npm)
+- Make sure Phonegap and Cordova are up to date via NPM. (sudo npm update -g  phonegap)
+- Serve app via (sudo phonegap serve)
 - Browser vs. emulator vs. deployed app behave differently in some ways. One important one is in HTTP calls, where cross-domain issues crop up (emulator proxies HTTP calls to the *phonegap serve* instance, so cross-domain issues may be masked). If you have a remote endpoint, **make sure the CORS headers are set properly**, or else you might get invisible errors when the app is deployed (this only happened with POSTs for me). (Using requestbin probably would have been a smart thing to try.) 
 - Refreshing the app (on Android at least) sometimes results in "App not installed" errors. Removing the app and waiting seems to get around this.
 - Make sure config.xml has <preference name="phonegap-version" value="cli-9.0.0" /> 

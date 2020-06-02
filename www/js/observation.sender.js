@@ -125,7 +125,10 @@ app.observation.sender = {
 
     },
 
-    sendAttachments : function(obj) {
+    sendAttachments : function(obj, mode) {
+        if(!mode)
+            mode = "json";
+
         if(navigator.onLine)
         {
             if(obj && obj != null)
@@ -137,6 +140,7 @@ app.observation.sender = {
                         console.log("Sending photos & videos");
                         var sendMe = null;
                         
+                        //send photos first
                         for(var i = 0; i < obj.Photos.length; i++)
                         {
                             if(!obj.Photos[i].AttachmentID || obj.Photos[i].AttachmentID == null)
@@ -146,6 +150,7 @@ app.observation.sender = {
                             }
                         }
 
+                        //if no photos, send videos
                         if(sendMe == null)
                         {
                             for(var i = 0; i < obj.Videos.length; i++)
@@ -170,40 +175,62 @@ app.observation.sender = {
                                     reader.onloadend = function() {
                                         console.log("Read file, ready to send it");
 
-                                        clone.Data = this.result;
+                                        if(mode == "json")
+                                        {
+                                            console.log("sending attachment via JSON");
+                                            //attach the data directly to the json object
+                                            clone.Data = this.result;
 
-                                        $.ajax({
-                                            url: app.getRemoteUrl("/en/fieldreporter/attach/" + obj.ObservationID),
-                                            method: "POST",
-                                            contentType: 'application/json; charset=utf-8',
-                                            dataType: "json",
-                                            data: JSON.stringify(clone),
+                                            $.ajax({
+                                                url: app.getRemoteUrl("/en/fieldreporter/attach/" + obj.ObservationID),
+                                                method: "POST",
+                                                contentType: 'application/json; charset=utf-8',
+                                                dataType: "json",
+                                                data: JSON.stringify(clone),
 
-                                            success : function (res) {
-                                                console.log("Success sending attachment");
-                                                console.log(JSON.stringify(res));
+                                                success : function (res) {
+                                                    console.log("Success sending attachment");
+                                                    console.log(JSON.stringify(res));
 
-                                                if(res.Status == "OK")
-                                                {
-                                                    sendMe._STATUS = "sent";
-                                                    sendMe.AttachmentID = res.AttachmentID;
-                                                }
-                                                else
-                                                {
+                                                    if(res.Status == "OK")
+                                                    {
+                                                        sendMe._STATUS = "sent";
+                                                        sendMe.AttachmentID = res.AttachmentID;
+                                                    }
+                                                    else
+                                                    {
+                                                        sendMe._STATUS = "error";
+                                                        sendMe._MESSAGE = res.Message;   
+                                                    }
+                                                    app.observation.save(obj);
+                                                    app.observation.sender.sendAttachments(obj, mode); //do it again
+                                                },
+                                                error : function(jqr, status) {
+                                                    console.log(status);
                                                     sendMe._STATUS = "error";
-                                                    sendMe._MESSAGE = res.Message;   
+                                                    sendMe._MESSAGE = status;   
+                                                    app.observation.save(obj);
+                                                    app.observation.sender.sendAttachments(obj, mode); //do it again
                                                 }
-                                                app.observation.save(obj);
-                                                app.observation.sender.sendAttachments(obj); //do it again
-                                            },
-                                            error : function(jqr, status) {
-                                                console.log(status);
-                                                sendMe._STATUS = "error";
-                                                sendMe._MESSAGE = status;   
-                                                app.observation.save(obj);
-                                                app.observation.sender.sendAttachments(obj); //do it again
-                                            }
-                                        });
+                                            });
+                                        }
+                                        else if(mode == "file")
+                                        {
+                                            console.log("sending attachment via FILE");
+                                            var blob = new Blob([new Uint8Array(this.result)], { type: file.type });
+                                            var oReq = new XMLHttpRequest();
+                                            oReq.open("POST", app.getRemoteUrl("/en/fieldreporter/attachfile/" + obj.ObservationID), true);
+                                            oReq.onload = function (oEvent) {
+                                                console.log("finished sending");
+                                                //TODO: write status to the JSON structure like above
+                                            };
+                                            // Pass the blob in to XHR's send method
+                                            oReq.send(blob);
+                                        }
+                                        else
+                                        {
+                                            console.log("invalid attachment mode: " + mode);
+                                        }
                                     };
                                 
                                     reader.readAsDataURL(file);

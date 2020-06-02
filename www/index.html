@@ -455,13 +455,14 @@
 	
 		<div role="main" class="ui-content" style="text-align: center;">
 			
+			<!--
 			<div id="photo-mosaic" style="opacity:0.5;text-align:center;position:absolute;top:0px;left:0px;right:0px;bottom:0px;overflow:hidden;"></div>
+			-->
 			
 			<div style="left:10%;right:10%;text-align:center;position: absolute;top: 50%;transform: translateY(-50%);">
 				<button type="button" onclick="app.showPage('home');" class="ui-btn clr-btn-light-green" ><i class="zmdi zmdi-eye" style="font-size:xx-large"></i><br> Add Your Observation</button>
-				<!--
-				<div style="margin-top:40px;"><a style="text-decoration: none;border-radius:10px;color:White;background-color: gray;padding:6px;opacity:0.5;box-shadow: 0 0 10px 10px gray;" href="javascript:app.showPage('recent_posts');">Or see recent observations</a></div>
-				-->
+
+				<div style="margin-top:40px;"><a style="text-decoration: none;border-radius:10px;" href="javascript:app.showPage('recent_posts');">View the latest headlines</a></div>
 				
 			</div>
 
@@ -489,15 +490,18 @@
 					<td style="vertical-align: bottom;"><input type="text" style="margin:0px;" onchange="app.posts.search(this.value);" placeholder="Search..." /></td>
 				</tr>
 			</table>
+
+			<h4 style="margin-top:20px;text-align: center;">
+					Visit <a href="#" onclick="window.open('https://www.leonetwork.org', '_system');return false;" >leonetwork.org</a> for thousands of observations of environmental change.  
+			</h4>
+
 			<div>
 
 			</div>
 			
 			<div id="latest"></div>
 
-			<h3 style="margin-top:30px;text-align: center;">
-					Visit <a href="#" onclick="window.open('https://www.leonetwork.org', '_system');return false;" >leonetwork.org <i class="zmdi zmdi-open-in-new"></i></a> for thousands of additional observations of environmental change.  
-			</h3>
+			
 		</div>
 	
 	</div>
@@ -984,7 +988,11 @@
 	<div data-role="panel" id="leftpanel" data-display="overlay" data-position-fixed="true" data-theme="a" >
 			<div style="text-align:center;">
 				<a href="javascript:app.showPage('welcome');"><img style="max-width:150px;" src="img/icon400x400.png" /></a>
+				
+				<!--
 				<h3>@Heading.LocalEnvironmentalObserverNetwork</h3>
+				-->
+				<br><br>
 
 				<button type="button" style="background-color:#8BC34A;color:White;" class="ui-btn clr-btn-light-green" onclick="app.showPage('home');"><i class="zmdi zmdi-eye" style="font-size:xx-large"></i><br> Add Your Observation</button>
 
